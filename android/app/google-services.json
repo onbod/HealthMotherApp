@@ -1,0 +1,105 @@
+{
+  "project_info": {
+    "project_number": "696567663861",
+    "project_id": "medilink-8b42a",
+    "storage_bucket": "medilink-8b42a.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:696567663861:android:44b6a09aee1d6b69ad89bc",
+        "android_client_info": {
+          "package_name": "com.example.anc_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlsRVihI233DO3gpdpowMVOKnq-wJKwO4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:696567663861:android:34df08bf5971c526ad89bc",
+        "android_client_info": {
+          "package_name": "com.example.healthymamaapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlsRVihI233DO3gpdpowMVOKnq-wJKwO4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:696567663861:android:ff7eef74994031d4ad89bc",
+        "android_client_info": {
+          "package_name": "com.flutterflow.dynamicaichat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlsRVihI233DO3gpdpowMVOKnq-wJKwO4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:696567663861:android:43fe09a368f793e1ad89bc",
+        "android_client_info": {
+          "package_name": "com.mycompany.googleedtechai"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlsRVihI233DO3gpdpowMVOKnq-wJKwO4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:696567663861:android:8114b8e09ef33dc9ad89bc",
+        "android_client_info": {
+          "package_name": "com.mycompany.truchat"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlsRVihI233DO3gpdpowMVOKnq-wJKwO4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
