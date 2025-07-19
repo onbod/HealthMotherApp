@@ -1,0 +1,33 @@
+[debug] [2025-06-21T15:26:47.089Z] ----------------------------------------------------------------------
+[debug] [2025-06-21T15:26:47.102Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\IB-Tec\AppData\Roaming\npm\node_modules\firebase-tools\lib\bin\firebase.js deploy --only firestore:rules --project medilink-8b42a
+[debug] [2025-06-21T15:26:47.102Z] CLI Version:   14.8.0
+[debug] [2025-06-21T15:26:47.102Z] Platform:      win32
+[debug] [2025-06-21T15:26:47.103Z] Node Version:  v20.18.0
+[debug] [2025-06-21T15:26:47.103Z] Time:          Sat Jun 21 2025 15:26:47 GMT+0000 (Greenwich Mean Time)
+[debug] [2025-06-21T15:26:47.103Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2025-06-21T15:26:47.430Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2025-06-21T15:26:47.431Z] > authorizing via signed-in user (ibrahimswaray430@gmail.com)
+[debug] [2025-06-21T15:26:47.431Z] [iam] checking project medilink-8b42a for permissions ["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]
+[debug] [2025-06-21T15:26:47.433Z] Checked if tokens are valid: false, expires at: 1750517575297
+[debug] [2025-06-21T15:26:47.433Z] Checked if tokens are valid: false, expires at: 1750517575297
+[debug] [2025-06-21T15:26:47.433Z] > refreshing access token with scopes: []
+[debug] [2025-06-21T15:26:47.435Z] >>> [apiv2][query] POST https://www.googleapis.com/oauth2/v3/token [none]
+[debug] [2025-06-21T15:26:47.435Z] >>> [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-06-21T15:26:48.521Z] <<< [apiv2][status] POST https://www.googleapis.com/oauth2/v3/token 200
+[debug] [2025-06-21T15:26:48.522Z] <<< [apiv2][body] POST https://www.googleapis.com/oauth2/v3/token [omitted]
+[debug] [2025-06-21T15:26:48.534Z] >>> [apiv2][query] POST https://cloudresourcemanager.googleapis.com/v1/projects/medilink-8b42a:testIamPermissions [none]
+[debug] [2025-06-21T15:26:48.535Z] >>> [apiv2][(partial)header] POST https://cloudresourcemanager.googleapis.com/v1/projects/medilink-8b42a:testIamPermissions x-goog-quota-user=projects/medilink-8b42a
+[debug] [2025-06-21T15:26:48.535Z] >>> [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/medilink-8b42a:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[debug] [2025-06-21T15:26:50.061Z] <<< [apiv2][status] POST https://cloudresourcemanager.googleapis.com/v1/projects/medilink-8b42a:testIamPermissions 200
+[debug] [2025-06-21T15:26:50.062Z] <<< [apiv2][body] POST https://cloudresourcemanager.googleapis.com/v1/projects/medilink-8b42a:testIamPermissions {"permissions":["datastore.indexes.create","datastore.indexes.delete","datastore.indexes.list","datastore.indexes.update","firebase.projects.get"]}
+[info] 
+[info] === Deploying to 'medilink-8b42a'...
+[info] 
+[info] i  deploying firestore 
+[debug] [2025-06-21T15:26:55.074Z] Error: Timed out.
+    at Timeout._onTimeout (C:\Users\IB-Tec\AppData\Roaming\npm\node_modules\firebase-tools\lib\utils.js:267:49)
+    at listOnTimeout (node:internal/timers:581:17)
+    at process.processTimers (node:internal/timers:519:7)
+[error] 
+[error] Error: An unexpected error has occurred.

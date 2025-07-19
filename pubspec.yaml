@@ -1,0 +1,130 @@
+# yaml-language-server: $schema=https://json.schemastore.org/pubspec.json
+name: healthymamaapp
+description: "A new Flutter project."
+# The following line prevents the package from being accidentally published to
+# pub.dev using `flutter pub publish`. This is preferred for private packages.
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
+# The following defines the version and build number for your application.
+# A version number is three numbers separated by dots, like 1.2.43
+# followed by an optional build number separated by a +.
+# Both the version and the builder number may be overridden in flutter
+# build by specifying --build-name and --build-number, respectively.
+# In Android, build-name is used as versionName while build-number used as versionCode.
+# Read more about Android versioning at https://developer.android.com/studio/publish/versioning
+# In iOS, build-name is used as CFBundleShortVersionString while build-number is used as CFBundleVersion.
+# Read more about iOS versioning at
+# https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
+# In Windows, build-name is used as the major, minor, and patch parts
+# of the product and file versions while build-number is used as the build suffix.
+version: 1.0.0+1
+
+environment:
+  sdk: '^3.7.0'
+
+# Dependencies specify other packages that your package needs in order to work.
+# To automatically upgrade your package dependencies to the latest versions
+# consider running `flutter pub upgrade --major-versions`. Alternatively,
+# dependencies can be manually updated by changing the version numbers below to
+# the latest version available on pub.dev. To see which dependencies have newer
+# versions available, run `flutter pub outdated`.
+dependencies:
+  flutter:
+    sdk: flutter
+  smooth_page_indicator: ^1.1.0
+  flutter_launcher_icons: ^0.14.3
+  flutter_native_splash: ^2.4.6
+  shared_preferences: ^2.2.2
+  table_calendar: ^3.0.9
+  provider: ^6.1.1
+  uuid: ^4.1.0
+  firebase_core: ^3.14.0
+  firebase_auth: ^5.6.0
+  cloud_firestore: ^5.6.9
+  flutter_animate: ^4.5.0
+  flutter_local_notifications: ^19.2.1
+  timezone: ^0.10.1
+  flutter_timezone: ^4.1.1
+  android_alarm_manager_plus: ^4.0.7
+  permission_handler: ^12.0.0+1
+  pin_code_fields: ^8.0.1
+  flutter_secure_storage: ^9.0.0
+  youtube_explode_dart: ^2.4.2
+  youtube_player_flutter: ^9.1.1
+  url_launcher: ^6.2.2
+  flutter_inappwebview: ^6.0.0
+  file_picker: ^10.2.0
+  http: ^1.4.0
+  intl: ^0.19.0
+  audioplayers: ^5.2.1
+
+  # The following adds the Cupertino Icons font to your application.
+  # Use with the CupertinoIcons class for iOS style icons.
+  cupertino_icons: ^1.0.2
+  firebase_storage: ^12.4.7
+  cloud_functions: ^5.5.2
+  flutter_speed_dial: ^7.0.0
+  fhir: ^0.12.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+    
+
+  # The "flutter_lints" package below contains a set of recommended lints to
+  # encourage good coding practices. The lint set originally came from the
+  # package:lints from Dart side, which was migrated to package:flutter_lints.
+  # This rule set is designed to become the default for new flutter projects, and
+  # it is a recommended starting point for any non-trivial new project.
+  flutter_lints: ^5.0.0
+
+# For information on the generic Dart part of this file, see the
+# following page: https://dart.dev/tools/pub/pubspec
+
+# The following section is specific to Flutter packages.
+flutter:
+  assets:
+        - assets/icon/appicon.png
+        - assets/icon/new_Icon.png
+        - assets/icon/icon_dark.png
+        - assets/onboarding/pregnant.png
+        - assets/onboarding/pregnantphone2.jpg
+        - assets/onboarding/afterpregnancy.jpg
+        - assets/slflag.png 
+        - assets/images/week6.jpg
+        - assets/images/week7.jpg
+        - assets/images/week8.jpg
+        - assets/images/week9.jpg
+        - assets/images/week10.jpg
+        - assets/images/week11.jpg
+        - assets/images/week12.png
+        - assets/images/week15.jpg
+        - assets/images/week20.png
+        - assets/images/week25.png
+        - assets/images/week30.png
+        - assets/images/week35.png
+        - assets/images/week40.png
+        - assets/alarm.mp3
+
+  fonts:
+    - family: Noto Color Emoji
+      fonts:
+        - asset: assets/fonts/NotoColorEmoji.ttf
+
+  # The following line ensures that the Material Icons font is
+  # included with your application, so that you can use the icons in
+  # the material Icons class.
+  uses-material-design: true
+
+flutter_native_splash:
+  color: "#ffffff"
+  color_dark: "#272727"
+  image: assets/icon/appicon.png
+  image_dark: assets/icon/icon_dark.png
+  icon_background_color: "transparent"
+  android_gravity: fill
+  ios_content_mode: scaleToFill
+  web: false
+  firebase_core: ^2.25.4
+  firebase_auth: ^4.17.8
+

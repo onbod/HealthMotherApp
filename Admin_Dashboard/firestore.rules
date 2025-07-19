@@ -1,0 +1,15 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow read/write access to ancRecords collection for field updates
+    match /ancRecords/{document} {
+      allow read, write: if true; // TEMPORARY - Remove after field update
+    }
+    
+    // Your existing rules can go here
+    // match /{document=**} {
+    //   allow read, write: if request.auth != null;
+    // }
+  }
+}
