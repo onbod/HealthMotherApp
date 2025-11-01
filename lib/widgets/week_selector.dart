@@ -101,26 +101,43 @@ class _WeekSelectorState extends State<WeekSelector> {
     );
     print('Current _isDataProcessed state: $_isDataProcessed');
 
-    // Use the latest gestational age from the provider (from database)
+    // Prefer latest gestational age from ANC visits (schema: anc_visit.gestation_weeks)
     final latestGestationalAge = userSession.getLatestGestationalAge();
-    print('Latest gestational age from DB: $latestGestationalAge');
+    print('Latest gestational age from ANC (provider): $latestGestationalAge');
 
-    if (latestGestationalAge != null) {
-      setState(() {
-        _currentWeek = latestGestationalAge;
-        _selectedWeek = _currentWeek;
-        print('Final current week set to: $_currentWeek');
-        _needsScroll = true;
-      });
-      print('========== END WEEK SELECTOR DEBUG INFO (NEW LOGIC) ==========');
-      return;
+    int? resolvedWeek = latestGestationalAge;
+
+    // Fallback to pregnancy.current_gestation_weeks from schema
+    if (resolvedWeek == null) {
+      final currentPreg = userSession.getCurrentPregnancy();
+      if (currentPreg != null &&
+          currentPreg['current_gestation_weeks'] != null) {
+        final cg = currentPreg['current_gestation_weeks'];
+        if (cg is int)
+          resolvedWeek = cg;
+        else if (cg is String)
+          resolvedWeek = int.tryParse(cg);
+        print('Resolved from pregnancy.current_gestation_weeks: $resolvedWeek');
+      }
     }
 
-    // Fallback: If no gestational age found, keep week 1
-    print('No gestational age found in DB. Defaulting to week 1.');
+    // Fallback to compute from LMP if available
+    if (resolvedWeek == null) {
+      final lmp = userSession.getLmp();
+      if (lmp != null) {
+        final diffDays = DateTime.now().difference(lmp).inDays;
+        resolvedWeek = (diffDays / 7).floor().clamp(1, 40);
+        print('Resolved from LMP: $resolvedWeek');
+      }
+    }
+
+    // Final fallback to week 1
+    resolvedWeek ??= 1;
+
     setState(() {
-      _currentWeek = 1;
-      _selectedWeek = 1;
+      _currentWeek = resolvedWeek!;
+      _selectedWeek = _currentWeek;
+      print('Final current week set to: $_currentWeek');
       _needsScroll = true;
     });
     print('========== END WEEK SELECTOR DEBUG INFO (NEW LOGIC) ==========');

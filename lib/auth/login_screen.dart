@@ -17,7 +17,14 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
 
   void _requestOtp(String phoneNumber) async {
-    final formattedNumber = '+232$phoneNumber';
+    // Format phone number with Sierra Leone country code
+    String formattedNumber = phoneNumber;
+    if (phoneNumber.startsWith('0')) {
+      formattedNumber = '+232${phoneNumber.substring(1)}';
+    } else if (!phoneNumber.startsWith('+232')) {
+      formattedNumber = '+232$phoneNumber';
+    }
+
     setState(() {
       _isLoading = true;
     });

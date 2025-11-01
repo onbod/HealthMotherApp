@@ -20,11 +20,12 @@ class BabyProgressScreen extends StatelessWidget {
         if (dateOfAncContact != null && gestationalAge != null) {
           DateTime contactDate;
           try {
-            contactDate = dateOfAncContact is DateTime
-                ? dateOfAncContact
-                : DateTime.fromMillisecondsSinceEpoch(
-                    (dateOfAncContact as Timestamp).millisecondsSinceEpoch,
-                  );
+            contactDate =
+                dateOfAncContact is DateTime
+                    ? dateOfAncContact
+                    : DateTime.fromMillisecondsSinceEpoch(
+                      (dateOfAncContact as Timestamp).millisecondsSinceEpoch,
+                    );
           } catch (e) {
             continue;
           }
@@ -39,9 +40,10 @@ class BabyProgressScreen extends StatelessWidget {
     if (visits.isEmpty) return 1;
     visits.sort((a, b) => a['visitNumber'].compareTo(b['visitNumber']));
     final baseVisit = visits.last;
-    int baseWeek = baseVisit['gestationalAge'] is num
-        ? baseVisit['gestationalAge'].toInt()
-        : int.tryParse(baseVisit['gestationalAge'].toString()) ?? 1;
+    int baseWeek =
+        baseVisit['gestationalAge'] is num
+            ? baseVisit['gestationalAge'].toInt()
+            : int.tryParse(baseVisit['gestationalAge'].toString()) ?? 1;
     DateTime baseDate = baseVisit['contactDate'];
     final now = DateTime.now();
     int currentWeek;
@@ -127,8 +129,9 @@ class BabyProgressScreen extends StatelessWidget {
                         value: progress,
                         strokeWidth: 18,
                         backgroundColor: Colors.grey[300],
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(highlightColor),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          highlightColor,
+                        ),
                       ),
                     ),
                     ClipOval(
@@ -144,10 +147,7 @@ class BabyProgressScreen extends StatelessWidget {
                 const SizedBox(height: 32),
                 Text(
                   '$remainingDays days remaining until due date',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
                 ),
                 const SizedBox(height: 32),
                 LinearProgressIndicator(
@@ -160,7 +160,9 @@ class BabyProgressScreen extends StatelessWidget {
                 Text(
                   '${(progress * 100).toStringAsFixed(1)}% completed',
                   style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w500),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ],
             ),

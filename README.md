@@ -156,7 +156,7 @@ This project consists of three main components:
       ```
     
     **For Railway Deployment:**
-    - The backend is deployed on Railway at: `https://health-fhir-backend-production.up.railway.app`
+    - The backend is deployed on Railway at: `https://health-fhir-backend-production-6ae1.up.railway.app`
     - Database connection is automatically configured via Railway environment variables
     - No local setup required for production use
     
@@ -191,7 +191,7 @@ This project consists of three main components:
     ```env
     # For Railway deployment (recommended)
     DATABASE_URL=postgresql://user:password@localhost:5432/healthmother
-    NEXT_PUBLIC_API_URL=https://health-fhir-backend-production.up.railway.app
+    NEXT_PUBLIC_API_URL=https://health-fhir-backend-production-6ae1.up.railway.app
     
     # For local development
     # DATABASE_URL=postgresql://user:password@localhost:5432/healthmother
@@ -544,7 +544,7 @@ The Admin Dashboard is a modern, responsive web application built with **Next.js
 
 ## API Endpoints
 
-**Base URL**: `https://health-fhir-backend-production.up.railway.app`
+**Base URL**: `https://health-fhir-backend-production-6ae1.up.railway.app`
 
 ### Authentication
 - `POST /login/request-otp` - Request OTP for patient login
@@ -575,7 +575,7 @@ The Admin Dashboard is a modern, responsive web application built with **Next.js
 ## Testing
 
 ### Production Environment
-- **Backend URL**: `https://health-fhir-backend-production.up.railway.app`
+- **Backend URL**: `https://health-fhir-backend-production-6ae1.up.railway.app`
 - **Database**: PostgreSQL hosted on Railway
 - **SSL**: HTTPS enabled
 
@@ -617,7 +617,7 @@ The Admin Dashboard is a modern, responsive web application built with **Next.js
 The backend is deployed on **Railway** for production use:
 
 #### **Railway Configuration**
-- **URL**: `https://health-fhir-backend-production.up.railway.app`
+- **URL**: `https://health-fhir-backend-production-6ae1.up.railway.app`
 - **Database**: PostgreSQL hosted on Railway
 - **Environment Variables**: Automatically managed by Railway
 - **SSL**: HTTPS enabled by default

@@ -21,7 +21,7 @@ import 'features/pin_verification_screen.dart';
 import 'package:healthymamaapp/services/local_notification_manager.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:healthymamaapp/services/alarm_service.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -143,6 +143,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
   bool _showPinScreen = false;
   bool _isFirstLaunch = false;
   bool _sessionRestored = false;
+  bool _webPatientRestored = false;
 
   @override
   void initState() {
@@ -150,7 +151,23 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _checkFirstLaunch();
     _checkPinStatus();
+    _restoreWebPatientSession();
     _restoreSession();
+  }
+
+  Future<void> _restoreWebPatientSession() async {
+    if (kIsWeb) {
+      final userSessionProvider = Provider.of<UserSessionProvider>(
+        context,
+        listen: false,
+      );
+      await userSessionProvider.restorePatientFromStorage();
+      setState(() {
+        _webPatientRestored = true;
+      });
+    } else {
+      _webPatientRestored = true;
+    }
   }
 
   Future<void> _restoreSession() async {
@@ -222,7 +239,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    if (!_sessionRestored) {
+    if (!_sessionRestored || !_webPatientRestored) {
       return const Center(child: CircularProgressIndicator());
     }
     if (_isFirstLaunch) {
@@ -240,7 +257,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
           // Load user session data when authenticated
           _loadUserSession(snapshot.data!);
 
-          if (_showPinScreen) {
+          if (_showPinScreen && !kIsWeb) {
             return const PinLockScreen();
           }
           return const GlobalNavigation(currentIndex: 0, child: HomeScreen());
@@ -257,9 +274,15 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
             if (localSnapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
+            // On web, if we have patient data in provider, go to Home
+            if (kIsWeb && userSessionProvider.patient != null) {
+              return const GlobalNavigation(
+                currentIndex: 0,
+                child: HomeScreen(),
+              );
+            }
             if (localSnapshot.data == true) {
-              // Session restored, show home or PIN screen
-              if (_showPinScreen) {
+              if (_showPinScreen && !kIsWeb) {
                 return const PinLockScreen();
               }
               return const GlobalNavigation(
@@ -267,7 +290,6 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
                 child: HomeScreen(),
               );
             }
-            // No session, show login
             return const MainLoginScreen();
           },
         );

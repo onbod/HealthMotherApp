@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/user_session_provider.dart';
 import '../features/notifications_screen.dart'; // Import the notifications screen
-import '../providers/theme_provider.dart';
 import '../features/settings_screen.dart'; // Import the settings screen
 import '../services/notification_service.dart';
 import '../services/firestore_notification_service.dart';
@@ -37,7 +36,7 @@ class SharedAppBar extends StatefulWidget implements PreferredSizeWidget {
 
   @override
   Size get preferredSize =>
-      Size.fromHeight(isSimpleLayout ? (85.0 + 16.0) : (50.0 + 16.0));
+      Size.fromHeight(isSimpleLayout ? (85.0 + 16.0) : (50.0 + 18.0));
 }
 
 class _SharedAppBarState extends State<SharedAppBar> {
@@ -70,17 +69,23 @@ class _SharedAppBarState extends State<SharedAppBar> {
 
   Future<void> _fetchUnreadCount() async {
     if (!mounted) return;
-    final userSession =
-        Provider.of<UserSessionProvider>(context, listen: false);
-    final clientNumber = userSession.clientNumber;
+    final userSession = Provider.of<UserSessionProvider>(
+      context,
+      listen: false,
+    );
+    // Prefer schema's patient.identifier when clientNumber is not available
+    final clientNumber =
+        userSession.clientNumber ?? userSession.patient?['identifier'];
 
     if (clientNumber != null && clientNumber.isNotEmpty) {
       try {
         // Get unread count from both services
-        final reportCount =
-            await _notificationService.getUnreadNotificationCount(clientNumber);
-        final firestoreCount = await _firestoreNotificationService.getUnreadCount(
-            context); // Count unread notifications from notifications collection
+        final reportCount = await _notificationService
+            .getUnreadNotificationCount(clientNumber);
+        final firestoreCount = await _firestoreNotificationService
+            .getUnreadCount(
+              context,
+            ); // Count unread notifications from notifications collection
 
         final totalCount = reportCount + firestoreCount;
 
@@ -117,200 +122,223 @@ class _SharedAppBarState extends State<SharedAppBar> {
 
   @override
   Widget build(BuildContext context) {
-    final userSession =
-        Provider.of<UserSessionProvider>(context, listen: false);
+    final userSession = Provider.of<UserSessionProvider>(
+      context,
+      listen: false,
+    );
     final clientName = userSession.getClientName() ?? 'User';
     final initials = _getInitials(clientName);
 
-    return Container(
-      color: widget.isSimpleLayout ? const Color(0xFF7C4DFF) : Colors.white,
-      padding: EdgeInsets.only(
-        top: widget.isSimpleLayout ? (38.0 + 16.0) : (10.0 + 16.0),
-        left: 16,
-        right: 16,
-        bottom: widget.isSimpleLayout ? 5 : 7,
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 12.0, top: 8.0),
-                child: widget.isHomeScreen
-                    ? Image.asset('assets/icon/new_Icon.png', height: 40)
-                    : (widget.onSidebarToggle == null
-                        ? IconButton(
-                            icon: const Icon(Icons.arrow_back,
-                                color: Color(0xFF7C4DFF)),
-                            onPressed: () {
-                              if (Navigator.canPop(context)) {
-                                Navigator.of(context).pop();
-                              } else {
-                                Navigator.of(context)
-                                    .pushReplacementNamed('/home');
-                              }
-                            },
-                          )
-                        : const SizedBox()),
-              ),
-              if (widget.isSimpleLayout)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (widget.leadingWidget != null)
-                      InkWell(
+    return SafeArea(
+      child: Container(
+        constraints: const BoxConstraints(
+          maxHeight: 80, // Adjust as needed for your design
+        ),
+        color: widget.isSimpleLayout ? const Color(0xFF7C4DFF) : Colors.white,
+        padding: EdgeInsets.only(
+          top: widget.isSimpleLayout ? 24.0 : 8.0, // Reduced padding
+          left: 16,
+          right: 16,
+          bottom: 4, // Reduced padding
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              mainAxisSize: MainAxisSize.max,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 12.0, top: 8.0),
+                  child:
+                      widget.isHomeScreen
+                          ? Image.asset('assets/icon/new_Icon.png', height: 40)
+                          : (widget.onSidebarToggle == null
+                              ? IconButton(
+                                icon: const Icon(
+                                  Icons.arrow_back,
+                                  color: Color(0xFF7C4DFF),
+                                ),
+                                onPressed: () {
+                                  if (Navigator.canPop(context)) {
+                                    Navigator.of(context).pop();
+                                  } else {
+                                    Navigator.of(
+                                      context,
+                                    ).pushReplacementNamed('/home');
+                                  }
+                                },
+                              )
+                              : const SizedBox()),
+                ),
+                if (widget.isSimpleLayout)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (widget.leadingWidget != null)
+                        InkWell(
                           onTap: widget.onLeadingPressed,
-                          child: widget.leadingWidget),
-                    if (widget.onSidebarToggle != null)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 0.0),
-                        child: IconButton(
-                          icon: Icon(
-                            widget.isSidebarOpen ? Icons.menu_open : Icons.menu,
-                            color: const Color(0xFF7C4DFF),
-                            size: 40,
-                          ),
-                          onPressed: widget.onSidebarToggle,
-                          tooltip: 'Toggle Chat History',
+                          child: widget.leadingWidget,
                         ),
-                      ),
-                  ],
-                )
-              else if (widget.leadingWidget != null)
-                InkWell(
-                    onTap: widget.onLeadingPressed, child: widget.leadingWidget)
-              else if (widget.onSidebarToggle != null)
-                IconButton(
-                  icon: Icon(
+                      if (widget.onSidebarToggle != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 0.0),
+                          child: IconButton(
+                            icon: Icon(
+                              widget.isSidebarOpen
+                                  ? Icons.menu_open
+                                  : Icons.menu,
+                              color: const Color(0xFF7C4DFF),
+                              size: 40,
+                            ),
+                            onPressed: widget.onSidebarToggle,
+                            tooltip: 'Toggle Chat History',
+                          ),
+                        ),
+                    ],
+                  )
+                else if (widget.leadingWidget != null)
+                  InkWell(
+                    onTap: widget.onLeadingPressed,
+                    child: widget.leadingWidget,
+                  )
+                else if (widget.onSidebarToggle != null)
+                  IconButton(
+                    icon: Icon(
                       widget.isSidebarOpen ? Icons.menu_open : Icons.menu,
                       color: const Color(0xFF7C4DFF),
-                      size: 32),
-                  onPressed: widget.onSidebarToggle,
-                  tooltip: 'Toggle Sidebar',
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              if (!widget.isHomeScreen && widget.screenTitle != null)
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      widget.screenTitle!,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black,
+                      size: 32,
+                    ),
+                    onPressed: widget.onSidebarToggle,
+                    tooltip: 'Toggle Sidebar',
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                if (!widget.isHomeScreen && widget.screenTitle != null)
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        widget.screenTitle!,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.black,
+                        ),
                       ),
                     ),
                   ),
-                ),
-              const Spacer(),
-              const Spacer(),
-              if (widget.isSimpleLayout)
-                const SizedBox(width: 40)
-              else
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(top: 8.0),
-                      child: Stack(
-                        children: [
-                          IconButton(
-                            icon: const Icon(
-                              Icons.notifications_none,
-                              color: Colors.black,
-                              size: 24,
+                const Spacer(),
+                if (widget.isSimpleLayout)
+                  const SizedBox(width: 40)
+                else
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Stack(
+                          children: [
+                            IconButton(
+                              icon: const Icon(
+                                Icons.notifications_none,
+                                color: Colors.black,
+                                size: 24,
+                              ),
+                              onPressed: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder:
+                                        (context) =>
+                                            const NotificationsScreen(),
+                                  ),
+                                );
+                                // Force refresh the badge count after returning from notifications
+                                await _fetchUnreadCount();
+                              },
+                              tooltip: 'Notifications',
                             ),
-                            onPressed: () async {
-                              await Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) =>
-                                      const NotificationsScreen(),
+                            Positioned(
+                              right: 8,
+                              top: 8,
+                              child: Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: BoxDecoration(
+                                  color: Colors.red,
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                              );
-                              // Force refresh the badge count after returning from notifications
-                              await _fetchUnreadCount();
-                            },
-                            tooltip: 'Notifications',
-                          ),
-                          Positioned(
-                            right: 8,
-                            top: 8,
-                            child: Container(
-                              padding: const EdgeInsets.all(2),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(8),
+                                constraints: const BoxConstraints(
+                                  minWidth: 16,
+                                  minHeight: 16,
+                                ),
+                                child: Text(
+                                  '$_unreadCount',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 10,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      GestureDetector(
+                        onTap:
+                            () => _showUserMenu(context, clientName, initials),
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8.0),
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF7C4DFF),
+                              shape: BoxShape.circle,
+                            ),
+                            child: Center(
                               child: Text(
-                                '$_unreadCount',
+                                initials,
                                 style: const TextStyle(
                                   color: Colors.white,
-                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: () => _showUserMenu(context, clientName, initials),
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 8.0),
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF7C4DFF),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              initials,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 14,
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-          if (widget.isSimpleLayout)
-            Padding(
-              padding: const EdgeInsets.only(top: 8.0),
-              child: Text(
-                widget.visitNumber,
-                style: const TextStyle(
+                    ],
+                  ),
+              ],
+            ),
+            if (widget.isSimpleLayout)
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: Text(
+                  widget.visitNumber,
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 24,
-                    fontWeight: FontWeight.bold),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
 
   void _showUserMenu(BuildContext context, String clientName, String initials) {
-    final userSession =
-        Provider.of<UserSessionProvider>(context, listen: false);
+    final userSession = Provider.of<UserSessionProvider>(
+      context,
+      listen: false,
+    );
 
     showMenu<String>(
       context: context,
@@ -336,7 +364,9 @@ class _SharedAppBarState extends State<SharedAppBar> {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   Text(
-                    userSession.clientNumber ?? 'No Client ID',
+                    (userSession.clientNumber ??
+                        userSession.patient?['identifier'] ??
+                        'No Client ID'),
                     style: const TextStyle(fontSize: 12, color: Colors.grey),
                   ),
                 ],
@@ -354,10 +384,7 @@ class _SharedAppBarState extends State<SharedAppBar> {
         ),
         const PopupMenuItem<String>(
           value: 'logout',
-          child: ListTile(
-            leading: Icon(Icons.logout),
-            title: Text('Logout'),
-          ),
+          child: ListTile(leading: Icon(Icons.logout), title: Text('Logout')),
         ),
       ],
       elevation: 8.0,
@@ -375,20 +402,21 @@ class _SharedAppBarState extends State<SharedAppBar> {
         case 'logout':
           final shouldLogout = await showDialog<bool>(
             context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Logout'),
-              content: const Text('Are you sure you want to logout?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('No'),
+            builder:
+                (context) => AlertDialog(
+                  title: const Text('Logout'),
+                  content: const Text('Are you sure you want to logout?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(false),
+                      child: const Text('No'),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      child: const Text('Yes'),
+                    ),
+                  ],
                 ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Yes'),
-                ),
-              ],
-            ),
           );
           if (shouldLogout == true) {
             try {
@@ -400,8 +428,9 @@ class _SharedAppBarState extends State<SharedAppBar> {
                 (route) => false,
               );
             } catch (e) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error logging out: $e')));
+              ScaffoldMessenger.of(
+                context,
+              ).showSnackBar(SnackBar(content: Text('Error logging out: $e')));
             }
           }
           break;

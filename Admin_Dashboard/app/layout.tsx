@@ -104,7 +104,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             <div className="flex-1 flex flex-col">
               <DashboardHeader onLogout={handleLogout} isMobile={false} />
               <main className="flex-1 p-2 overflow-auto">
-                <div className="max-w-[98vw] mx-auto">
+                <div className="w-full">
                   {children}
                 </div>
               </main>

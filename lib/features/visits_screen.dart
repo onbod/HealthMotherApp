@@ -9,6 +9,7 @@ import 'pin_verification_screen.dart'; // Import for PIN dialog
 import 'package:shared_preferences/shared_preferences.dart';
 import 'pin_lock_screen.dart'; // Import for PIN lock screen
 import 'package:intl/intl.dart'; // Added for date formatting
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class VisitsScreen extends StatefulWidget {
   const VisitsScreen({Key? key}) : super(key: key);
@@ -211,13 +212,13 @@ class _VisitsScreenState extends State<VisitsScreen> {
                 child: Consumer<UserSessionProvider>(
                   builder: (context, userSession, child) {
                     return GridView.builder(
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 2,
-                            crossAxisSpacing: 16.0,
-                            mainAxisSpacing: 16.0,
-                            childAspectRatio: 1.0,
-                          ),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: kIsWeb ? 3 : 2, // More columns on web
+                        crossAxisSpacing: 16.0,
+                        mainAxisSpacing: 16.0,
+                        childAspectRatio:
+                            kIsWeb ? 1.4 : 1.0, // Wider, shorter boxes on web
+                      ),
                       itemCount: 8,
                       itemBuilder: (context, index) {
                         final int contactNumber = index + 1;
@@ -239,17 +240,11 @@ class _VisitsScreenState extends State<VisitsScreen> {
                           onTap:
                               isCompleted
                                   ? () async {
-                                    final pinOk = await Navigator.push<bool>(
-                                      context,
-                                      MaterialPageRoute(
-                                        fullscreenDialog: true,
-                                        builder:
-                                            (context) => const PinLockScreen(
-                                              isChangingPin: true,
-                                            ),
-                                      ),
-                                    );
-                                    if (pinOk == true) {
+                                    print('Visit $contactNumber tapped');
+                                    if (kIsWeb) {
+                                      print(
+                                        'Web: Skipping PIN, navigating directly to ContactDetailsScreen for visit $contactNumber',
+                                      );
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
@@ -259,6 +254,38 @@ class _VisitsScreenState extends State<VisitsScreen> {
                                               ),
                                         ),
                                       );
+                                    } else {
+                                      final pinOk = await Navigator.push<bool>(
+                                        context,
+                                        MaterialPageRoute(
+                                          fullscreenDialog: true,
+                                          builder:
+                                              (context) => const PinLockScreen(
+                                                isChangingPin: true,
+                                              ),
+                                        ),
+                                      );
+                                      print('PIN result: $pinOk');
+                                      if (pinOk == true) {
+                                        print(
+                                          'Navigating to ContactDetailsScreen for visit $contactNumber',
+                                        );
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder:
+                                                (context) =>
+                                                    ContactDetailsScreen(
+                                                      contactNumber:
+                                                          contactNumber,
+                                                    ),
+                                          ),
+                                        );
+                                      } else {
+                                        print(
+                                          'PIN not correct or cancelled, staying on VisitsScreen',
+                                        );
+                                      }
                                     }
                                   }
                                   : null,
@@ -312,16 +339,18 @@ class _VisitsScreenState extends State<VisitsScreen> {
                                         isCompleted
                                             ? Icons.check_circle
                                             : Icons.lock,
-                                        color:
-                                            primaryColor, // both completed and incomplete use primaryColor
-                                        size: 48,
+                                        color: primaryColor,
+                                        size:
+                                            kIsWeb
+                                                ? 32
+                                                : 48, // Smaller icon on web
                                       ),
                                     ),
                                     const SizedBox(height: 12),
                                     Text(
                                       'Visit $contactNumber',
                                       style: TextStyle(
-                                        fontSize: 18,
+                                        fontSize: kIsWeb ? 14 : 18,
                                         fontWeight: FontWeight.bold,
                                         color:
                                             isCompleted
@@ -333,7 +362,7 @@ class _VisitsScreenState extends State<VisitsScreen> {
                                     Text(
                                       '($gestationalAgeRange)',
                                       style: TextStyle(
-                                        fontSize: 12,
+                                        fontSize: kIsWeb ? 10 : 12,
                                         color:
                                             isCompleted
                                                 ? primaryColor.withOpacity(0.8)
@@ -350,7 +379,7 @@ class _VisitsScreenState extends State<VisitsScreen> {
                                           style: TextStyle(
                                             color: Colors.red[400],
                                             fontWeight: FontWeight.w600,
-                                            fontSize: 13,
+                                            fontSize: kIsWeb ? 11 : 13,
                                           ),
                                         ),
                                       ),

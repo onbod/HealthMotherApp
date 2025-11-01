@@ -16,6 +16,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useLocalAuth } from "@/hooks/use-auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useEffect, useState } from "react"
+import { usePathname } from "next/navigation";
 
 interface DashboardHeaderProps {
   onLogout: () => void
@@ -29,6 +30,7 @@ export function DashboardHeader({ onLogout, onMenuToggle, isMobile, isMobileMenu
   const { role } = useLocalAuth();
   const [userData, setUserData] = useState({ name: '', email: '' });
   const isMobileMenu = useIsMobile();
+  const pathname = usePathname();
 
   useEffect(() => {
     setMounted(true);
@@ -44,6 +46,11 @@ export function DashboardHeader({ onLogout, onMenuToggle, isMobile, isMobileMenu
   if (!mounted) {
     return null;
   }
+
+  // Remove the conditional that hides the header on /report
+  // if (pathname === "/report") {
+  //   return null;
+  // }
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-white-300 bg-white backdrop-blur supports-[backdrop-filter]:bg-white-200/90">

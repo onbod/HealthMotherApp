@@ -107,10 +107,12 @@ export function HealthEducation() {
   const [nutritionType, setNutritionType] = useState<string>("");
 
   const currentUserId = "admin"; // Replace with actual user ID from auth
+  const API_BASE = 'https://health-fhir-backend-production-6ae1.up.railway.app/api';
 
   useEffect(() => {
-    fetchPatients()
-    fetchHealthTips()
+    fetchPatients();
+    fetchHealthTips();
+    fetchNutritionTips();
   }, [])
 
   useEffect(() => {
@@ -151,25 +153,35 @@ export function HealthEducation() {
   }
 
   const fetchHealthTips = async () => {
+    setLoading(true);
     try {
-      // Simulate fetching tips from a local state or dummy data
-      const dummyHealthTips: HealthTip[] = [
-        { id: "1", title: "Health Tip 1", content: "This is a health tip content 1.", category: "health", targetStage: "first-trimester", targetWeeks: [5, 10], createdAt: new Date(), sentCount: 10, isActive: true, weeks: "5,10", categoryType: "General Health" },
-        { id: "2", title: "Health Tip 2", content: "This is a health tip content 2.", category: "health", targetStage: "second-trimester", targetWeeks: [15, 20], createdAt: new Date(), sentCount: 20, isActive: true, weeks: "15,20", categoryType: "Physical Health" },
-        { id: "3", title: "Health Tip 3", content: "This is a health tip content 3.", category: "health", targetStage: "third-trimester", targetWeeks: [25, 30], createdAt: new Date(), sentCount: 30, isActive: true, weeks: "25,30", categoryType: "Mental Health" },
-        { id: "4", title: "Nutrition Tip 1", content: "This is a nutrition tip content 1.", category: "nutrition", targetStage: "first-trimester", targetWeeks: [5], createdAt: new Date(), sentCount: 10, isActive: true, weeks: "5", nutritionType: "Pregnancy Nutrition" },
-        { id: "5", title: "Nutrition Tip 2", content: "This is a nutrition tip content 2.", category: "nutrition", targetStage: "second-trimester", targetWeeks: [15], createdAt: new Date(), sentCount: 20, isActive: true, weeks: "15", nutritionType: "Snacks" },
-        { id: "6", title: "Health Video 1", content: "This is a health video content 1.", category: "video", targetStage: "first-trimester", targetWeeks: [5], createdAt: new Date(), sentCount: 10, isActive: true, weeks: "5" },
-        { id: "7", title: "Health Video 2", content: "This is a health video content 2.", category: "video", targetStage: "second-trimester", targetWeeks: [15], createdAt: new Date(), sentCount: 20, isActive: true, weeks: "15" },
-      ];
-      setHealthTips(dummyHealthTips);
-      setHealthTipsCount(dummyHealthTips.length);
-      setNutritionTipsCount(dummyHealthTips.filter(t => t.category === "nutrition").length);
-      setHealthVideosCount(dummyHealthTips.filter(t => t.category === "video").length);
+      const res = await fetch(`${API_BASE}/health_tips`);
+      const data = await res.json();
+      setHealthTips(data);
+      setHealthTipsCount(data.length);
+      setNutritionTipsCount(data.filter((t: any) => t.category === "nutrition").length);
+      setHealthVideosCount(data.filter((t: any) => t.category === "video").length);
     } catch (error) {
-      alert("Error fetching tips: " + (error as any).message);
+      alert("Error fetching health tips: " + (error as any).message);
+    } finally {
+      setLoading(false);
     }
-  }
+  };
+
+  const fetchNutritionTips = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/nutrition_tips`);
+      const data = await res.json();
+      // Optionally merge with healthTips or store separately
+      setHealthTips(prev => [...prev, ...data]);
+      setNutritionTipsCount(data.length);
+    } catch (error) {
+      alert("Error fetching nutrition tips: " + (error as any).message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getInitials = (fullName: string) => {
     if (!fullName) return "?";
@@ -211,40 +223,49 @@ export function HealthEducation() {
   };
 
   const handleCreateTip = async () => {
-    // Always provide all required HealthTip fields
-    const baseTip: HealthTip = {
-      id: editTipId || Date.now().toString(),
-      title: tipTitle,
-      content: tipContent,
-      category: (createTipType as "health" | "nutrition" | "video") || "health",
-      targetStage: (tipTrimester as HealthTip["targetStage"]) || "first-trimester",
-      targetWeeks: tipWeeks && tipWeeks !== "any" ? [Number(tipWeeks)] : [],
-      targetVisits: tipVisit && tipVisit !== "any" ? [Number(tipVisit)] : [],
-      createdAt: new Date(),
-      sentCount: 0,
-      isActive: true,
-      weeks: tipWeeks || "",
-      categoryType: createTipType === 'health' ? categoryType : undefined,
-      nutritionType: createTipType === 'nutrition' ? nutritionType : undefined,
-    };
+    const isNutrition = createTipType === 'nutrition';
+    const baseEndpoint = isNutrition ? `${API_BASE}/nutrition_tips` : `${API_BASE}/health_tips`;
+    const endpoint = editTipId ? `${baseEndpoint}/${editTipId}` : baseEndpoint;
+    const method = editTipId ? 'PUT' : 'POST';
+    const body = isNutrition
+      ? {
+          title: tipTitle,
+          content: tipContent,
+          target_stage: tipTrimester,
+          target_weeks: tipWeeks ? [Number(tipWeeks)] : [],
+          target_visits: tipVisit ? [Number(tipVisit)] : [],
+          weeks: tipWeeks,
+          nutrition_type: nutritionType,
+          is_active: true,
+        }
+      : {
+          title: tipTitle,
+          content: tipContent,
+          target_stage: tipTrimester,
+          target_weeks: tipWeeks ? [Number(tipWeeks)] : [],
+          target_visits: tipVisit ? [Number(tipVisit)] : [],
+          weeks: tipWeeks,
+          category_type: categoryType,
+          is_active: true,
+        };
     try {
-      if (editTipId) {
-        // Simulate update
-        const updatedTips = healthTips.map(tip =>
-          tip.id === editTipId ? { ...tip, ...baseTip } : tip
-        );
-        setHealthTips(updatedTips);
-        alert("Tip updated!");
-      } else {
-        // Simulate add
-        setHealthTips(prev => [...prev, baseTip]);
-        alert("Tip created and saved to local state!");
+      const res = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Backend error:', errorText);
+        throw new Error('Failed to save tip');
       }
+      alert('Tip saved!');
       setIsCreateModalOpen(false);
       setEditTipId(null);
-      fetchHealthTips(); // Re-fetch to update counts
+      fetchHealthTips();
+      fetchNutritionTips();
     } catch (error) {
-      alert("Error saving tip: " + (error as any).message);
+      alert('Error saving tip: ' + (error as any).message);
     }
   };
 

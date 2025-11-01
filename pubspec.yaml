@@ -125,6 +125,4 @@ flutter_native_splash:
   android_gravity: fill
   ios_content_mode: scaleToFill
   web: false
-  firebase_core: ^2.25.4
-  firebase_auth: ^4.17.8
 

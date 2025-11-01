@@ -28,6 +28,7 @@ export function AppSidebar({ activeView, onViewChange, patientCount }: AppSideba
   const [unreadReportCount, setUnreadReportCount] = useState<number>(0);
   const [unreadMessagesCount, setUnreadMessagesCount] = useState<number>(0);
   const [role, setRole] = useState('admin');
+  const [realPatientCount, setRealPatientCount] = useState<number>(0);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -36,37 +37,23 @@ export function AppSidebar({ activeView, onViewChange, patientCount }: AppSideba
   }, []);
 
   useEffect(() => {
-    // Real-time updates for unread messages count
-    // const unsubscribe = db ? onSnapshot(collection(db, "chats"), (snapshot) => {
-    //   let totalUnread = 0;
-    //   snapshot.forEach(docSnap => {
-    //     const data = docSnap.data();
-    //     totalUnread += data.unreadCount || 0;
-    //   });
-    //   setUnreadMessagesCount(totalUnread);
-    // }) : undefined;
-
-    // Other counts (notifications, reports) can remain as getDocs
-    // const fetchCounts = async () => {
-    //   try {
-    //     // Fetch notification count
-    //     const notificationSnapshot = await getDocs(collection(db, "notifications"));
-    //     setNotificationCount(notificationSnapshot.size);
-
-    //     // Fetch report counts
-    //     const reportSnapshot = await getDocs(collection(db, "report"));
-    //     const reports = reportSnapshot.docs.map(doc => doc.data());
-    //     setReportCount(reports.length);
-    //     setUnreadReportCount(reports.filter((report: any) => !report.isRead).length);
-    //   } catch (error) {
-    //     console.error("Error fetching counts:", error);
-    //     setNotificationCount(0);
-    //     setReportCount(0);
-    //     setUnreadReportCount(0);
-    //   }
-    // };
-    // fetchCounts();
-    // return () => { if (unsubscribe) unsubscribe(); };
+    // Fetch real patient count from backend
+    async function fetchPatientCount() {
+      try {
+        const res = await fetch("https://health-fhir-backend-production-6ae1.up.railway.app/api/patient");
+        const data = await res.json();
+        let count = 0;
+        if (Array.isArray(data)) {
+          count = data.length;
+        } else if (data.entry && Array.isArray(data.entry)) {
+          count = data.entry.length;
+        }
+        setRealPatientCount(count);
+      } catch (err) {
+        setRealPatientCount(0);
+      }
+    }
+    fetchPatientCount();
   }, []);
 
   const menuItems = role === 'clinician' ? [
@@ -79,7 +66,7 @@ export function AppSidebar({ activeView, onViewChange, patientCount }: AppSideba
       title: "Patients",
       icon: Users,
       id: "patients",
-      badge: patientCount.toString(),
+      badge: realPatientCount.toString(),
     },
     {
       title: "Referral",
@@ -102,7 +89,7 @@ export function AppSidebar({ activeView, onViewChange, patientCount }: AppSideba
       title: "Patients",
       icon: Users,
       id: "patients",
-      badge: patientCount.toString(),
+      badge: realPatientCount.toString(),
     },
     // {
     //   title: "Trimester Views",

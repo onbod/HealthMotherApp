@@ -21,53 +21,122 @@ import {
 import { useIsMobile } from "@/hooks/use-mobile"
 import { useEffect, useState } from "react"
 
-// Sample data for charts
-const patientsByTrimester = [
-  { trimester: "1st Trimester", count: 8, fill: "#3b82f6" },
-  { trimester: "2nd Trimester", count: 12, fill: "#10b981" },
-  { trimester: "3rd Trimester", count: 6, fill: "#f59e0b" },
-  { trimester: "Postpartum", count: 4, fill: "#8b5cf6" },
-]
-
-const appointmentsThisWeek = [
-  { day: "Mon", appointments: 6 },
-  { day: "Tue", appointments: 8 },
-  { day: "Wed", appointments: 5 },
-  { day: "Thu", appointments: 9 },
-  { day: "Fri", appointments: 7 },
-  { day: "Sat", appointments: 3 },
-  { day: "Sun", appointments: 2 },
-]
-
-const riskLevels = [
-  { level: "Low Risk", count: 18, fill: "#10b981" },
-  { level: "Medium Risk", count: 8, fill: "#f59e0b" },
-  { level: "High Risk", count: 4, fill: "#ef4444" },
-]
-
-const monthlyTrends = [
-  { month: "Aug", newPatients: 4, births: 2 },
-  { month: "Sep", newPatients: 6, births: 3 },
-  { month: "Oct", newPatients: 5, births: 4 },
-  { month: "Nov", newPatients: 8, births: 3 },
-  { month: "Dec", newPatients: 7, births: 5 },
-  { month: "Jan", newPatients: 9, births: 4 },
-]
-
-const upcomingDueDates = [
-  { name: "Marie Kamara", dueDate: "2024-02-15", weeks: 36, risk: "Medium" },
-  { name: "Emmanuella Turay", dueDate: "2024-03-20", weeks: 24, risk: "Low" },
-  { name: "Sarah Conteh", dueDate: "2024-04-10", weeks: 12, risk: "Low" },
-  { name: "Clara Deen", dueDate: "2024-04-25", weeks: 8, risk: "Low" },
-]
-
 export function DashboardOverview() {
-  const isMobile = useIsMobile()
-  // Dummy data for metrics
-  const totalPatients = 30
-  const highRiskPatients = 4
-  const birthsThisMonth = 5
-  const totalAppointmentsThisWeek = appointmentsThisWeek.reduce((sum, item) => sum + item.appointments, 0)
+  const isMobile = useIsMobile();
+  const [loading, setLoading] = useState(true);
+  const [patients, setPatients] = useState<any[]>([]);
+  const [deliveries, setDeliveries] = useState<any[]>([]);
+  const [ancIndicators, setAncIndicators] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchData() {
+      setLoading(true)
+      setError(null)
+      try {
+        // Fetch patients
+        const patientsRes = await fetch("https://health-fhir-backend-production-6ae1.up.railway.app/api/patient");
+        const patientsData = await patientsRes.json();
+        let realPatients = [];
+        if (Array.isArray(patientsData)) {
+          realPatients = patientsData;
+        } else if (patientsData.entry && Array.isArray(patientsData.entry)) {
+          realPatients = patientsData.entry.map((e: any) => e.resource);
+        }
+        setPatients(realPatients);
+
+        // Fetch deliveries
+        const deliveriesRes = await fetch("https://health-fhir-backend-production-6ae1.up.railway.app/delivery");
+        const deliveriesData = await deliveriesRes.json();
+        setDeliveries(Array.isArray(deliveriesData) ? deliveriesData : []);
+
+        // Fetch ANC indicators
+        const ancRes = await fetch("https://health-fhir-backend-production-6ae1.up.railway.app/indicators/anc");
+        const ancData = await ancRes.json();
+        setAncIndicators(ancData);
+      } catch (err: any) {
+        setError("Failed to fetch dashboard data.")
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
+  }, [])
+
+  // Compute metrics
+  const totalPatients = patients.length
+  const birthsThisMonth = deliveries.filter((d: any) => {
+    const date = new Date(d.dateOfDelivery || d.deliveryDate)
+    const now = new Date()
+    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()
+  }).length
+  const highRiskPatients = patients.filter((p: any) => p.riskLevel === "High").length
+  // Example: appointmentsThisWeek from ANC indicators if available
+  const totalAppointmentsThisWeek = ancIndicators?.appointmentsThisWeek || 0
+
+  // Example: patients by trimester (if available in patient data)
+  const patientsByTrimester = [
+    { trimester: "1st Trimester", count: patients.filter((p: any) => p.trimester === "1st").length, fill: "#3b82f6" },
+    { trimester: "2nd Trimester", count: patients.filter((p: any) => p.trimester === "2nd").length, fill: "#10b981" },
+    { trimester: "3rd Trimester", count: patients.filter((p: any) => p.trimester === "3rd").length, fill: "#f59e0b" },
+    { trimester: "Postpartum", count: patients.filter((p: any) => p.status === "Postpartum").length, fill: "#8b5cf6" },
+  ]
+
+  // Example: risk levels
+  const riskLevels = [
+    { level: "Low Risk", count: patients.filter((p: any) => p.riskLevel === "Low").length, fill: "#10b981" },
+    { level: "Medium Risk", count: patients.filter((p: any) => p.riskLevel === "Medium").length, fill: "#f59e0b" },
+    { level: "High Risk", count: highRiskPatients, fill: "#ef4444" },
+  ]
+
+  // Example: upcoming due dates
+  const upcomingDueDates = patients
+    .filter((p: any) => p.dueDate)
+    .map((p: any) => ({
+      name: p.name?.text || p.name || "Unknown",
+      dueDate: p.dueDate,
+      weeks: p.weeks,
+      risk: p.riskLevel || "Unknown"
+    }))
+    .sort((a: any, b: any) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+    .slice(0, 4)
+
+  // Compute weekly appointments for chart
+  const appointmentsThisWeekData = ancIndicators?.appointmentsByDay || [];
+
+  // Compute monthly trends for the last 6 months
+  const getLast6Months = () => {
+    const months = [];
+    const now = new Date();
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        month: d.toLocaleString('default', { month: 'short' }),
+        year: d.getFullYear(),
+        key: `${d.getFullYear()}-${d.getMonth()}`
+      });
+    }
+    return months;
+  };
+  const last6Months = getLast6Months();
+  const monthlyTrends = last6Months.map(({ month, year, key }) => {
+    const newPatients = patients.filter((p: any) => {
+      const created = p.meta?.lastUpdated ? new Date(p.meta.lastUpdated) : null;
+      return created && created.getFullYear() === year && created.getMonth() === last6Months.findIndex(m => m.key === key) + (new Date().getMonth() - 5);
+    }).length;
+    const births = deliveries.filter((d: any) => {
+      const date = new Date(d.dateOfDelivery || d.deliveryDate);
+      return date.getFullYear() === year && date.toLocaleString('default', { month: 'short' }) === month;
+    }).length;
+    return { month, newPatients, births };
+  });
+
+  if (loading) {
+    return <div>Loading dashboard...</div>
+  }
+  if (error) {
+    return <div className="text-red-500">{error}</div>
+  }
 
   return (
     <div className="space-y-4 sm:space-y-6">
@@ -90,6 +159,7 @@ export function DashboardOverview() {
             <p className="text-xs text-muted-foreground">
               <span className="text-black flex items-center">
                 <TrendingUp className="h-3 w-3 mr-1" />
+                {/* You can add a real trend here if available */}
                 +12% from last month
               </span>
             </p>
@@ -203,7 +273,7 @@ export function DashboardOverview() {
               className={`${isMobile ? "h-[250px]" : "h-[300px]"}`}
             >
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={appointmentsThisWeek}>
+                <BarChart data={appointmentsThisWeekData}>
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="day" fontSize={isMobile ? 10 : 12} />
                   <YAxis fontSize={isMobile ? 10 : 12} />

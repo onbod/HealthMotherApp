@@ -24,19 +24,25 @@ interface Patient {
   dueDate: string;
 }
 
-const mapFhirPatientToTable = (patient: any): Patient => ({
-  id: patient.id,
-  name: patient.name?.[0]?.text || (patient.name?.[0]?.given?.join(' ') + ' ' + patient.name?.[0]?.family) || '',
-  age: patient.birthDate ? new Date().getFullYear() - new Date(patient.birthDate).getFullYear() : 0,
-  phone: patient.telecom?.find((t: any) => t.system === 'phone')?.value || '',
-  email: patient.telecom?.find((t: any) => t.system === 'email')?.value || '',
-  address: patient.address?.[0]?.line?.join(', ') || '',
-  emergencyContact: patient.contact?.[0]?.name?.text || '',
-  riskLevel: 'Low', // You can enhance this logic
-  status: 'Active', // You can enhance this logic
-  weeks: 0, // You can enhance this logic
-  dueDate: '', // You can enhance this logic
-});
+// Patient mapping helper
+function mapApiPatientToFrontend(patient: any) {
+  return {
+    id: patient.id, // numeric id for visit matching
+    name: patient.name?.[0]?.text || patient.client_number || '',
+    age: patient.age || (patient.birth_date ? new Date().getFullYear() - new Date(patient.birth_date).getFullYear() : 0),
+    phone: patient.phone,
+    email: patient.email || '',
+    address: patient.address?.text || (Array.isArray(patient.address?.line) ? patient.address.line.join(', ') : ''),
+    emergencyContact: patient.emergency_contact?.name || patient.emergency_contact?.phone || '',
+    riskLevel: patient.risk_level || 'Low',
+    status: patient.status || 'Active',
+    weeks: patient.weeks || 0,
+    dueDate: patient.due_date || '',
+    clientNumber: patient.client_number,
+    birthDate: patient.birth_date,
+    // Add more fields as needed
+  };
+}
 
 export default function PatientsPage() {
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -53,13 +59,28 @@ export default function PatientsPage() {
       try {
         const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : '';
         if (!token) throw new Error('No admin token found');
-        const res = await fetch(getApiUrl('/fhir/Patient'), {
+        const res = await fetch(getApiUrl('/api/patient'), {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (!res.ok) throw new Error('Failed to fetch patients');
         const data = await res.json();
-        const fhirPatients = data.entry?.map((e: any) => e.resource) || [];
-        setPatients(fhirPatients.map(mapFhirPatientToTable));
+        console.log('Patients API response:', data);
+        
+        // Handle different response formats
+        let patients = [];
+        if (Array.isArray(data)) {
+          // Direct array response
+          patients = data.map(mapApiPatientToFrontend);
+        } else if (data.entry && Array.isArray(data.entry)) {
+          // FHIR bundle format
+          const fhirPatients = data.entry?.map((e: any) => e.resource) || [];
+          patients = fhirPatients.map(mapApiPatientToFrontend);
+        } else {
+          console.error('Unexpected patient data format:', data);
+          patients = [];
+        }
+        
+        setPatients(patients);
       } catch (err: any) {
         setError(err.message || 'Error fetching patients');
       } finally {

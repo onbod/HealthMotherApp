@@ -1,0 +1,120 @@
+Excel Field Name,FHIR Element,DAK Data Element,SQL Column Name,Data Type
+Client Name,Patient.name,ANC.IND01,patient_name,VARCHAR(100)
+Client Number,Patient.identifier,ANC.IND01,patient_identifier,VARCHAR(50)
+NIN,Patient.identifier,ANC.IND01,national_id,VARCHAR(20)
+Age,Patient.birthDate,ANC.IND02,age,INT
+Address,Patient.address,ANC.IND03,address,TEXT
+Responsible Person,Patient.contact,ANC.IND04,responsible_person,VARCHAR(100)
+Facility Name,Organization.name,ANC.IND05,facility_name,VARCHAR(100)
+Type,Organization.type,ANC.IND05,facility_type,VARCHAR(50)
+Chiefdom/Zone,Organization.address,ANC.IND05,chiefdom_zone,VARCHAR(100)
+Year,Encounter.period.start,ANC.IND06,year,INT
+Month,Encounter.period.start,ANC.IND06,month,INT
+In Facility,Encounter.location,ANC.IND07,in_facility,BOOLEAN
+Outreach,Encounter.location,ANC.IND07,outreach,BOOLEAN
+LMP,Observation.valueDateTime,ANC.IND08,last_menstrual_period,DATE
+EDD,Observation.valueDateTime,ANC.IND09,estimated_delivery_date,DATE
+Gestational age (weeks),Observation.valueQuantity,ANC.IND10,gestational_age_weeks,INT
+Gravida,Observation.valueInteger,ANC.IND11,gravida,INT
+Parity,Observation.valueInteger,ANC.IND12,parity,INT
+Number of children Alive,Observation.valueInteger,ANC.IND13,children_alive,INT
+H1,Condition.code,ANC.IND14,past_pregnancy_h1,BOOLEAN
+H2,Condition.code,ANC.IND15,past_pregnancy_h2,BOOLEAN
+H3,Condition.code,ANC.IND16,past_pregnancy_h3,BOOLEAN
+H4,Condition.code,ANC.IND17,past_pregnancy_h4,BOOLEAN
+H5,Condition.code,ANC.IND18,past_pregnancy_h5,BOOLEAN
+H6,Condition.code,ANC.IND19,past_pregnancy_h6,BOOLEAN
+H7,Condition.code,ANC.IND20,past_pregnancy_h7,BOOLEAN
+H9,Condition.code,ANC.IND21,past_pregnancy_h9,BOOLEAN
+H10,Condition.code,ANC.IND22,past_pregnancy_h10,BOOLEAN
+H11,Condition.code,ANC.IND23,past_pregnancy_h11,BOOLEAN
+H12,Condition.code,ANC.IND24,past_pregnancy_h12,BOOLEAN
+H13,Condition.code,ANC.IND25,past_pregnancy_h13,BOOLEAN
+H14,Condition.code,ANC.IND26,past_pregnancy_h14,BOOLEAN
+H15,Condition.code,ANC.IND27,past_pregnancy_h15,BOOLEAN
+H16,Condition.code,ANC.IND28,past_pregnancy_h16,BOOLEAN
+H17,Condition.code,ANC.IND29,past_pregnancy_h17,BOOLEAN
+H18,Condition.code,ANC.IND30,past_pregnancy_h18,BOOLEAN
+H19,Condition.code,ANC.IND31,past_pregnancy_h19,BOOLEAN
+H20,Condition.code,ANC.IND32,past_pregnancy_h20,BOOLEAN
+H21,Condition.code,ANC.IND33,past_pregnancy_h21,BOOLEAN
+PP1,Observation.valueString,ANC.IND34,present_pregnancy_pp1,TEXT
+PP2,Observation.valueString,ANC.IND35,present_pregnancy_pp2,TEXT
+PP3,Observation.valueString,ANC.IND36,present_pregnancy_pp3,TEXT
+PP4,Observation.valueString,ANC.IND37,present_pregnancy_pp4,TEXT
+PP5,Observation.valueString,ANC.IND38,present_pregnancy_pp5,TEXT
+PP6,Observation.valueString,ANC.IND39,present_pregnancy_pp6,TEXT
+PP7,Observation.valueString,ANC.IND40,present_pregnancy_pp7,TEXT
+PP8,Observation.valueString,ANC.IND41,present_pregnancy_pp8,TEXT
+PP9,Observation.valueString,ANC.IND42,present_pregnancy_pp9,TEXT
+PP10,Observation.valueString,ANC.IND43,present_pregnancy_pp10,TEXT
+PP11,Observation.valueString,ANC.IND44,present_pregnancy_pp11,TEXT
+PP12,Observation.valueString,ANC.IND45,present_pregnancy_pp12,TEXT
+PP13,Observation.valueString,ANC.IND46,present_pregnancy_pp13,TEXT
+PP14,Observation.valueString,ANC.IND47,present_pregnancy_pp14,TEXT
+PP15,Observation.valueString,ANC.IND48,present_pregnancy_pp15,TEXT
+PP16,Observation.valueString,ANC.IND49,present_pregnancy_pp16,TEXT
+PP17,Observation.valueString,ANC.IND50,present_pregnancy_pp17,TEXT
+PP18,Observation.valueString,ANC.IND51,present_pregnancy_pp18,TEXT
+PP19,Observation.valueString,ANC.IND52,present_pregnancy_pp19,TEXT
+PP20,Observation.valueString,ANC.IND53,present_pregnancy_pp20,TEXT
+PP21,Observation.valueString,ANC.IND54,present_pregnancy_pp21,TEXT
+PP22,Observation.valueString,ANC.IND55,present_pregnancy_pp22,TEXT
+PP23,Observation.valueString,ANC.IND56,present_pregnancy_pp23,TEXT
+Weight (kg),Observation.valueQuantity,ANC.IND57,weight_kg,DECIMAL(5,2)
+Height (cm),Observation.valueQuantity,ANC.IND58,height_cm,DECIMAL(5,2)
+Blood Pressure,Observation.valueString,ANC.IND59,blood_pressure,VARCHAR(20)
+Temperature,Observation.valueQuantity,ANC.IND60,temperature_celsius,DECIMAL(4,2)
+Pulse,Observation.valueQuantity,ANC.IND61,pulse_rate,INT
+Respiratory Rate,Observation.valueQuantity,ANC.IND62,respiratory_rate,INT
+Client Blood Group,Observation.valueString,ANC.IND63,blood_group,VARCHAR(10)
+Haemoglobin,Observation.valueQuantity,ANC.IND64,haemoglobin_gdl,DECIMAL(4,2)
+Urine Albumin,Observation.valueString,ANC.IND65,urine_albumin,VARCHAR(10)
+Tested for HIV,Observation.valueString,ANC.IND66,hiv_tested,VARCHAR(10)
+HIV results received,Observation.valueString,ANC.IND67,hiv_results,VARCHAR(10)
+Tested for Syphilis,Observation.valueString,ANC.IND68,syphilis_tested,VARCHAR(10)
+Screen for Hepatitis B,Observation.valueString,ANC.IND69,hepatitis_b_tested,VARCHAR(10)
+Iron and Folic Acid,MedicationStatement.medication,ANC.IND70,iron_folic_acid,BOOLEAN
+Multiple Micronutrient Supplement,MedicationStatement.medication,ANC.IND71,mms_supplement,BOOLEAN
+Intermittent preventive therapy malaria,MedicationStatement.medication,ANC.IND72,iptp_malaria,BOOLEAN
+LLINs given at ANC,MedicationStatement.medication,ANC.IND73,llins_given,BOOLEAN
+Albendazole,MedicationStatement.medication,ANC.IND74,albendazole_given,BOOLEAN
+Number of Td doses,MedicationStatement.medication,ANC.IND75,td_doses_count,INT
+Date of Labour onset,Encounter.period.start,ANC.IND76,labour_onset_date,DATE
+Time of Labour onset,Encounter.period.start,ANC.IND77,labour_onset_time,TIME
+Date of Delivery,Encounter.period.end,ANC.IND78,delivery_date,DATE
+Time of Delivery,Encounter.period.end,ANC.IND79,delivery_time,TIME
+Delivery Type,Procedure.code,ANC.IND80,delivery_type,VARCHAR(50)
+Delivery Conducted By,Procedure.performer,ANC.IND81,delivery_conducted_by,VARCHAR(50)
+Delivered at,Encounter.location,ANC.IND82,delivery_location,VARCHAR(50)
+Live Birth,Observation.valueBoolean,ANC.IND83,live_birth,BOOLEAN
+Sex of Baby,Patient.gender,ANC.IND84,baby_sex,VARCHAR(10)
+Birth weight,Observation.valueQuantity,ANC.IND85,birth_weight_kg,DECIMAL(4,2)
+Apgar score at 5 min,Observation.valueInteger,ANC.IND86,apgar_score_5min,INT
+Gestational age at birth,Observation.valueInteger,ANC.IND87,gestational_age_birth_weeks,INT
+Multiple birth,Observation.valueBoolean,ANC.IND88,multiple_birth,BOOLEAN
+Breastfeeding within 1 hr,Observation.valueBoolean,ANC.IND89,breastfeeding_1hr,BOOLEAN
+Baby alive after 24 hrs,Observation.valueBoolean,ANC.IND90,baby_alive_24hrs,BOOLEAN
+Mother alive 24 hrs after delivery,Observation.valueBoolean,ANC.IND91,mother_alive_24hrs,BOOLEAN
+State of the Perineum,Observation.valueString,ANC.IND92,perineum_state,VARCHAR(50)
+Placenta and Membrane complete,Observation.valueBoolean,ANC.IND93,placenta_complete,BOOLEAN
+Post-Partum Haemorrhage,Condition.code,ANC.IND94,postpartum_haemorrhage,BOOLEAN
+General condition of mother,Observation.valueString,ANC.IND95,mother_condition,VARCHAR(50)
+Has lactation been established,Observation.valueBoolean,ANC.IND96,lactation_established,BOOLEAN
+Does mother eat normally,Observation.valueBoolean,ANC.IND97,mother_eats_normally,BOOLEAN
+Family planning education,Observation.valueBoolean,ANC.IND98,family_planning_education,BOOLEAN
+Contraceptive method accepted,Observation.valueString,ANC.IND99,contraceptive_method,VARCHAR(100)
+Baby alive,Observation.valueBoolean,ANC.IND100,baby_alive,BOOLEAN
+Baby weight in Kg,Observation.valueQuantity,ANC.IND101,baby_weight_kg,DECIMAL(4,2)
+Fever present,Observation.valueBoolean,ANC.IND102,baby_fever,BOOLEAN
+Breastfeeding,Observation.valueBoolean,ANC.IND103,baby_breastfeeding,BOOLEAN
+Exclusive breastfeeding,Observation.valueBoolean,ANC.IND104,exclusive_breastfeeding,BOOLEAN
+Sucking ability normal,Observation.valueBoolean,ANC.IND105,sucking_ability_normal,BOOLEAN
+Congenital defect,Condition.code,ANC.IND106,congenital_defect,BOOLEAN
+Neonatal Sepsis,Condition.code,ANC.IND107,neonatal_sepsis,BOOLEAN
+Diarrhoea,Condition.code,ANC.IND108,diarrhoea,BOOLEAN
+Jaundice,Condition.code,ANC.IND109,jaundice,BOOLEAN
+Cord Healing Satisfactory,Observation.valueBoolean,ANC.IND110,cord_healing_ok,BOOLEAN
+BCG Date,Procedure.performedDateTime,ANC.IND111,bcg_date,DATE
+Birth registered,Observation.valueBoolean,ANC.IND112,birth_registered,BOOLEAN
+Death registered,Observation.valueBoolean,ANC.IND113,death_registered,BOOLEAN

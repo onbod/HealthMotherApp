@@ -29,6 +29,8 @@ interface Notification {
   isRead?: boolean; // <-- Add this line
 }
 
+const API_BASE = 'https://health-fhir-backend-production-6ae1.up.railway.app/api';
+
 export function Notifications() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -41,58 +43,28 @@ export function Notifications() {
   const [scheduleDate, setScheduleDate] = useState("")
   const [scheduleTime, setScheduleTime] = useState("")
 
+  // Fetch notifications from backend
   useEffect(() => {
-    // Use local dummy data for notifications
-    const dummyNotifications: Notification[] = [
-      {
-        id: "1",
-        title: "Appointment Reminder",
-        message: "Don't forget your appointment tomorrow at 10 AM.",
-        targetCategories: ["all"],
-        type: "notification",
-        status: "sent",
-        createdAt: "2023-10-26T10:00:00Z",
-        scheduledAt: null,
-      },
-      {
-        id: "2",
-        title: "System Update Available",
-        message: "A new system update is available. Please restart your application.",
-        targetCategories: ["all"],
-        type: "system_update",
-        status: "pending",
-        createdAt: "2023-10-25T14:30:00Z",
-        scheduledAt: null,
-      },
-      {
-        id: "3",
-        title: "Emergency Alert",
-        message: "A critical system failure has been detected. Immediate action required.",
-        targetCategories: ["all"],
-        type: "emergency",
-        status: "failed",
-        createdAt: "2023-10-24T09:00:00Z",
-        scheduledAt: null,
-      },
-      {
-        id: "4",
-        title: "Monthly Checkup Reminder",
-        message: "Your monthly checkup is due next week. Please schedule an appointment.",
-        targetCategories: ["all"],
-        type: "notification",
-        status: "delivered",
-        createdAt: "2023-10-23T11:00:00Z",
-        scheduledAt: null,
-      },
-    ];
-    setNotifications(dummyNotifications);
-    setLoading(false);
+    const fetchNotifications = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`${API_BASE}/notifications`);
+        const data = await res.json();
+        setNotifications(data);
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNotifications();
   }, []);
   
   const handleDelete = async (id: string) => {
     if (!window.confirm("Are you sure you want to delete this notification?")) return;
     try {
-      // In a real app, you would delete from the backend
+      const res = await fetch(`${API_BASE}/notifications/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to delete notification');
       setNotifications(notifications.filter(n => n.id !== id));
       toast.success("Notification deleted successfully.");
     } catch (error) {
@@ -108,32 +80,43 @@ export function Notifications() {
   
   const handleSave = async () => {
     if (!selectedNotification) return;
-
-    const isNewNotification = !selectedNotification.id;
-
     setIsSubmitting(true);
     try {
-      if(isNewNotification) {
-        const newId = (Math.max(...notifications.map(n => parseInt(n.id))) + 1).toString();
-        const newNotification: Notification = {
-          ...selectedNotification,
-          id: newId,
-          createdAt: new Date().toISOString(),
-          // createdBy: "admin", // No backend, so no user ID
-          isRead: false, // Add isRead field
-        };
-        setNotifications([...notifications, newNotification]);
+      const isNewNotification = !selectedNotification.id;
+      const endpoint = isNewNotification
+        ? `${API_BASE}/notifications`
+        : `${API_BASE}/notifications/${selectedNotification.id}`;
+      const method = isNewNotification ? 'POST' : 'PUT';
+      const body = {
+        title: selectedNotification.title,
+        message: selectedNotification.message,
+        target_categories: Array.isArray(selectedNotification.targetCategories) && selectedNotification.targetCategories.length > 0
+          ? selectedNotification.targetCategories
+          : ['all'],
+        type: selectedNotification.type,
+        status: selectedNotification.status,
+        created_at: selectedNotification.createdAt,
+        scheduled_at: selectedNotification.scheduledAt,
+        trimester: selectedNotification.trimester,
+        visit: selectedNotification.visit,
+        weeks: selectedNotification.weeks,
+        is_read: selectedNotification.isRead ?? false,
+      };
+      const res = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) throw new Error('Failed to save notification');
+      const saved = await res.json();
+      if (isNewNotification) {
+        setNotifications([...notifications, saved]);
         toast.success("Notification created successfully.");
       } else {
-        const updatedNotifications = notifications.map(n =>
-          n.id === selectedNotification.id ? { ...selectedNotification, updatedAt: new Date().toISOString() } : n
-        );
-        setNotifications(updatedNotifications);
+        setNotifications(notifications.map(n => n.id === saved.id ? saved : n));
         toast.success("Notification updated successfully.");
       }
-      
       setIsModalOpen(false);
-      // In a real app, you would refetch or update the backend
     } catch (error) {
       console.error("Error saving notification:", error);
       toast.error("Failed to save notification.");
@@ -293,7 +276,7 @@ export function Notifications() {
                 <div>
                   <Label htmlFor="trimester">Trimester</Label>
                   <Select
-                    value={selectedNotification.trimester}
+                    value={selectedNotification.trimester || 'all'}
                     onValueChange={(value) => setSelectedNotification({ ...selectedNotification, trimester: value as Notification['trimester'] })}
                   >
                     <SelectTrigger id="trimester"><SelectValue placeholder="Select Trimester" /></SelectTrigger>
@@ -308,11 +291,12 @@ export function Notifications() {
                 <div>
                   <Label htmlFor="weeks">Weeks</Label>
                   <Select
-                    value={String(selectedNotification.weeks || '')}
-                    onValueChange={(value) => setSelectedNotification({ ...selectedNotification, weeks: Number(value) })}
+                    value={String(selectedNotification.weeks || 'all')}
+                    onValueChange={(value) => setSelectedNotification({ ...selectedNotification, weeks: value === 'all' ? undefined : Number(value) })}
                   >
                     <SelectTrigger id="weeks"><SelectValue placeholder="Select Week" /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="all">All Weeks</SelectItem>
                       {Array.from({ length: 42 }, (_, i) => i + 1).map(week => (
                         <SelectItem key={week} value={String(week)}>Week {week}</SelectItem>
                       ))}
@@ -325,11 +309,12 @@ export function Notifications() {
                  <div>
                   <Label htmlFor="visit">Visit</Label>
                   <Select
-                    value={String(selectedNotification.visit || '')}
-                    onValueChange={(value) => setSelectedNotification({ ...selectedNotification, visit: Number(value) })}
+                    value={String(selectedNotification.visit || 'all')}
+                    onValueChange={(value) => setSelectedNotification({ ...selectedNotification, visit: value === 'all' ? undefined : Number(value) })}
                   >
                     <SelectTrigger id="visit"><SelectValue placeholder="Select Visit" /></SelectTrigger>
                     <SelectContent>
+                      <SelectItem value="all">All Visits</SelectItem>
                       {Array.from({ length: 8 }, (_, i) => i + 1).map(visit => (
                         <SelectItem key={visit} value={String(visit)}>Visit {visit}</SelectItem>
                       ))}

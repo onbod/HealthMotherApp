@@ -94,7 +94,6 @@ export default function SharedLayout({ children, activeView: propActiveView, pat
       <div className="flex min-h-screen w-full bg-gray-50">
         <AppSidebar activeView={activeView} onViewChange={handleViewChange} patientCount={patientCount} />
         <div className="flex-1 flex flex-col">
-          <DashboardHeader onLogout={handleLogout} isMobile={false} />
           <main className="flex-1 p-2 overflow-auto">
             <div className="max-w-[98vw] mx-auto">
               {children}

@@ -92,7 +92,7 @@ HealthyMother now features **full PostgreSQL database support** for persistent, 
 
    Visit [http://localhost:3000](http://localhost:3000)
 
-   **Note**: The Admin Dashboard connects to the Railway backend at `https://health-fhir-backend-production.up.railway.app`
+   **Note**: The Admin Dashboard connects to the Railway backend at `https://health-fhir-backend-production-6ae1.up.railway.app`
 
 ---
 

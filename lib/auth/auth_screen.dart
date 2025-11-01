@@ -25,7 +25,8 @@ class _AuthScreenState extends State<AuthScreen> {
   String? phoneNumber;
   String? given;
   String? family;
-  String? clientNumber;
+  String? identifier;
+  String? nationalId;
   bool _isLoading = false;
   String _errorMessage = '';
   bool _isCodeInvalid = false;
@@ -43,7 +44,8 @@ class _AuthScreenState extends State<AuthScreen> {
         phoneNumber = args['phoneNumber'];
         given = args['given'];
         family = args['family'];
-        clientNumber = args['client_number'];
+        identifier = args['identifier'];
+        nationalId = args['national_id'];
         _focusNodes[0].requestFocus();
       }
     });
@@ -78,15 +80,19 @@ class _AuthScreenState extends State<AuthScreen> {
         // Phone number verification
         endpoint = '/login/verify-otp';
         body = {"phone": phoneNumber, "otp": smsCode};
-      } else if (given != null && family != null && clientNumber != null) {
-        // Name and client number verification
+      } else if (given != null && family != null && identifier != null) {
+        // Name and identifier verification
         endpoint = '/login/verify-otp';
         body = {
           "given": given,
           "family": family,
-          "client_number": clientNumber,
+          "identifier": identifier,
           "otp": smsCode,
         };
+      } else if (nationalId != null) {
+        // National ID verification
+        endpoint = '/login/verify-otp';
+        body = {"national_id": nationalId, "otp": smsCode};
       } else {
         throw Exception('Invalid authentication parameters');
       }
@@ -158,13 +164,12 @@ class _AuthScreenState extends State<AuthScreen> {
       if (phoneNumber != null) {
         endpoint = '/login/request-otp';
         body = {"phone": phoneNumber};
-      } else if (given != null && family != null && clientNumber != null) {
+      } else if (given != null && family != null && identifier != null) {
         endpoint = '/login/request-otp';
-        body = {
-          "given": given,
-          "family": family,
-          "client_number": clientNumber,
-        };
+        body = {"given": given, "family": family, "identifier": identifier};
+      } else if (nationalId != null) {
+        endpoint = '/login/request-otp';
+        body = {"national_id": nationalId};
       } else {
         throw Exception('Invalid authentication parameters');
       }
@@ -482,8 +487,10 @@ class _AuthScreenState extends State<AuthScreen> {
   String _getSubtitleText() {
     if (phoneNumber != null) {
       return 'Enter the 6-digit code sent to $phoneNumber';
-    } else if (given != null && family != null && clientNumber != null) {
+    } else if (given != null && family != null && identifier != null) {
       return 'Enter the 6-digit code sent to $given $family';
+    } else if (nationalId != null) {
+      return 'Enter the 6-digit code sent to your registered phone';
     } else {
       return 'Enter the 6-digit code sent to your phone';
     }

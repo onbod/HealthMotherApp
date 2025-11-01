@@ -4,6 +4,8 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:io';
 import '../core/config.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class UserSessionProvider with ChangeNotifier {
   // --- Raw session data from backend ---
@@ -58,23 +60,45 @@ class UserSessionProvider with ChangeNotifier {
             ?.map((v) => Map<String, dynamic>.from(v))
             .toList() ??
         [];
+
+    // Load manual medications from local storage
+    await _loadManualMedications();
+
     notifyListeners();
   }
 
-  // --- Save patient data to secure storage ---
+  // --- Save patient data to secure storage or shared preferences ---
   Future<void> savePatientToStorage() async {
-    const storage = FlutterSecureStorage();
     if (patient != null) {
-      await storage.write(key: 'patient', value: jsonEncode(patient));
+      final patientJson = jsonEncode(patient);
+      if (kIsWeb) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('patient', patientJson);
+      } else {
+        const storage = FlutterSecureStorage();
+        await storage.write(key: 'patient', value: patientJson);
+      }
     } else {
-      await storage.delete(key: 'patient');
+      if (kIsWeb) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('patient');
+      } else {
+        const storage = FlutterSecureStorage();
+        await storage.delete(key: 'patient');
+      }
     }
   }
 
-  // --- Restore patient data from secure storage ---
+  // --- Restore patient data from secure storage or shared preferences ---
   Future<void> restorePatientFromStorage() async {
-    const storage = FlutterSecureStorage();
-    final patientJson = await storage.read(key: 'patient');
+    String? patientJson;
+    if (kIsWeb) {
+      final prefs = await SharedPreferences.getInstance();
+      patientJson = prefs.getString('patient');
+    } else {
+      const storage = FlutterSecureStorage();
+      patientJson = await storage.read(key: 'patient');
+    }
     if (patientJson != null) {
       patient = Map<String, dynamic>.from(jsonDecode(patientJson));
       notifyListeners();
@@ -261,11 +285,85 @@ class UserSessionProvider with ChangeNotifier {
     return visit?['medications'];
   }
 
-  List<dynamic> get manualMedications => [];
-  void removeManualMedication(String id) {}
-  void toggleManualMedicationAlarm(String id, bool value) {}
-  void updateManualMedication(dynamic med) {}
-  void addManualMedication(dynamic med) {}
+  // --- Manual Medications ---
+  List<Map<String, dynamic>> _manualMedications = [];
+
+  List<Map<String, dynamic>> get manualMedications =>
+      List.from(_manualMedications);
+
+  Future<void> _loadManualMedications() async {
+    try {
+      String? medicationsJson;
+      if (kIsWeb) {
+        final prefs = await SharedPreferences.getInstance();
+        medicationsJson = prefs.getString('manualMedications');
+      } else {
+        const storage = FlutterSecureStorage();
+        medicationsJson = await storage.read(key: 'manualMedications');
+      }
+
+      if (medicationsJson != null) {
+        final List<dynamic> medicationsList = jsonDecode(medicationsJson);
+        _manualMedications =
+            medicationsList
+                .map((med) => Map<String, dynamic>.from(med))
+                .toList();
+      }
+    } catch (e) {
+      print('Error loading manual medications: $e');
+      _manualMedications = [];
+    }
+  }
+
+  Future<void> _saveManualMedications() async {
+    try {
+      final medicationsJson = jsonEncode(_manualMedications);
+      if (kIsWeb) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('manualMedications', medicationsJson);
+      } else {
+        const storage = FlutterSecureStorage();
+        await storage.write(key: 'manualMedications', value: medicationsJson);
+      }
+    } catch (e) {
+      print('Error saving manual medications: $e');
+    }
+  }
+
+  void addManualMedication(dynamic med) {
+    if (med is Map<String, dynamic>) {
+      _manualMedications.add(med);
+      _saveManualMedications();
+      notifyListeners();
+    }
+  }
+
+  void updateManualMedication(dynamic med) {
+    if (med is Map<String, dynamic>) {
+      final id = med['id'];
+      final index = _manualMedications.indexWhere((m) => m['id'] == id);
+      if (index != -1) {
+        _manualMedications[index] = med;
+        _saveManualMedications();
+        notifyListeners();
+      }
+    }
+  }
+
+  void removeManualMedication(String id) {
+    _manualMedications.removeWhere((med) => med['id'] == id);
+    _saveManualMedications();
+    notifyListeners();
+  }
+
+  void toggleManualMedicationAlarm(String id, bool value) {
+    final index = _manualMedications.indexWhere((med) => med['id'] == id);
+    if (index != -1) {
+      _manualMedications[index]['alarmEnabled'] = value;
+      _saveManualMedications();
+      notifyListeners();
+    }
+  }
 
   // --- Visit gestational age range (stub) ---
   String? getVisitGestationalAgeRange(int visitNumber) {
@@ -325,6 +423,7 @@ class UserSessionProvider with ChangeNotifier {
     delivery = null;
     neonates = [];
     postnatalVisits = [];
+    _manualMedications = [];
     notifyListeners();
   }
 

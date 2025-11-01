@@ -18,14 +18,14 @@ class MainLoginScreen extends StatefulWidget {
 
 class _MainLoginScreenState extends State<MainLoginScreen> {
   final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _clientNumberController = TextEditingController();
+  final TextEditingController _identifierController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
 
   void _requestOtp() async {
     final name = _nameController.text.trim();
-    final clientNumber = _clientNumberController.text.trim();
-    if (name.isEmpty || clientNumber.isEmpty) {
+    final identifier = _identifierController.text.trim();
+    if (name.isEmpty || identifier.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
@@ -37,7 +37,7 @@ class _MainLoginScreenState extends State<MainLoginScreen> {
     try {
       // Split name into given and family (simple split by space)
       final nameParts = name.split(' ');
-      final given = [nameParts.first];
+      final given = nameParts.first;
       final family = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
       final response = await http.post(
         Uri.parse(AppConfig.getApiUrl('/login/request-otp')),
@@ -45,7 +45,7 @@ class _MainLoginScreenState extends State<MainLoginScreen> {
         body: jsonEncode({
           "given": given,
           "family": family,
-          "client_number": clientNumber,
+          "identifier": identifier,
         }),
       );
       setState(() {
@@ -58,7 +58,7 @@ class _MainLoginScreenState extends State<MainLoginScreen> {
           arguments: {
             'given': given,
             'family': family,
-            'client_number': clientNumber,
+            'identifier': identifier,
           },
         );
       } else {
@@ -78,8 +78,8 @@ class _MainLoginScreenState extends State<MainLoginScreen> {
 
   void _directLogin() async {
     final name = _nameController.text.trim();
-    final clientNumberOrNin = _clientNumberController.text.trim();
-    if (name.isEmpty || clientNumberOrNin.isEmpty) {
+    final identifier = _identifierController.text.trim();
+    if (name.isEmpty || identifier.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please fill in all fields')),
       );
@@ -91,7 +91,7 @@ class _MainLoginScreenState extends State<MainLoginScreen> {
     try {
       // Split name into given and family (simple split by space)
       final nameParts = name.split(' ');
-      final given = [nameParts.first];
+      final given = nameParts.first;
       final family = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
       final response = await http.post(
         Uri.parse(AppConfig.getApiUrl('/login/direct')),
@@ -99,8 +99,8 @@ class _MainLoginScreenState extends State<MainLoginScreen> {
         body: jsonEncode({
           "given": given,
           "family": family,
-          "client_number": clientNumberOrNin,
-          "nin_number": clientNumberOrNin,
+          "identifier": identifier,
+          "national_id": identifier, // Try both identifier and national_id
         }),
       );
       setState(() {
@@ -110,7 +110,7 @@ class _MainLoginScreenState extends State<MainLoginScreen> {
         final data = jsonDecode(response.body);
         if (data['token'] != null) {
           // Save token securely
-          final storage = FlutterSecureStorage();
+          const storage = FlutterSecureStorage();
           await storage.write(key: 'jwt', value: data['token']);
           // Load user session from backend
           final userSession = Provider.of<UserSessionProvider>(
@@ -139,7 +139,7 @@ class _MainLoginScreenState extends State<MainLoginScreen> {
   @override
   void dispose() {
     _nameController.dispose();
-    _clientNumberController.dispose();
+    _identifierController.dispose();
     super.dispose();
   }
 
@@ -204,19 +204,19 @@ class _MainLoginScreenState extends State<MainLoginScreen> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: TextFormField(
-                      controller: _clientNumberController,
+                      controller: _identifierController,
                       textCapitalization: TextCapitalization.characters,
                       style: const TextStyle(letterSpacing: 1.2, fontSize: 16),
                       decoration: const InputDecoration(
                         border: InputBorder.none,
-                        hintText: 'Enter your client number or NIN',
+                        hintText: 'Enter your patient ID or NIN',
                         hintStyle: TextStyle(color: Colors.grey, fontSize: 16),
                       ),
                     ),
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Enter your client number or NIN as shown on your ANC card',
+                    'Enter your patient ID or NIN as shown on your ANC card',
                     style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
                   ),
                   const SizedBox(height: 32),

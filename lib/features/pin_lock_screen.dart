@@ -5,6 +5,7 @@ import '../widgets/shared_app_bar.dart';
 import 'home_screen.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_session_provider.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class PinLockScreen extends StatefulWidget {
   final bool isChangingPin;
@@ -33,6 +34,15 @@ class _PinLockScreenState extends State<PinLockScreen> {
   @override
   void initState() {
     super.initState();
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
+      });
+      return;
+    }
     _checkForExistingPin();
   }
 
@@ -82,8 +92,10 @@ class _PinLockScreenState extends State<PinLockScreen> {
             await prefs.setBool('pin_setup_completed', true);
 
             // Load user data before navigating
-            final userSession =
-                Provider.of<UserSessionProvider>(context, listen: false);
+            final userSession = Provider.of<UserSessionProvider>(
+              context,
+              listen: false,
+            );
             final phoneNumber = userSession.getPhoneNumber();
             if (phoneNumber != null) {
               await userSession.loadUserData(phoneNumber);
@@ -111,7 +123,8 @@ class _PinLockScreenState extends State<PinLockScreen> {
         final storedPin = prefs.getString('user_pin');
         debugPrint('Verifying PIN. Stored PIN: $storedPin, Entered PIN: $pin');
         debugPrint(
-            'isChangingPin: ${widget.isChangingPin}, isDeletingPin: ${widget.isDeletingPin}');
+          'isChangingPin: ${widget.isChangingPin}, isDeletingPin: ${widget.isDeletingPin}',
+        );
 
         if (pin == storedPin) {
           if (widget.isChangingPin || widget.isDeletingPin) {
@@ -122,8 +135,10 @@ class _PinLockScreenState extends State<PinLockScreen> {
             }
           } else {
             // Load user data before navigating
-            final userSession =
-                Provider.of<UserSessionProvider>(context, listen: false);
+            final userSession = Provider.of<UserSessionProvider>(
+              context,
+              listen: false,
+            );
             final phoneNumber = userSession.getPhoneNumber();
             if (phoneNumber != null) {
               await userSession.loadUserData(phoneNumber);
@@ -189,6 +204,9 @@ class _PinLockScreenState extends State<PinLockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (kIsWeb) {
+      return const SizedBox.shrink();
+    }
     String title = 'Enter PIN';
     if (widget.isChangingPin) {
       title = 'Enter Current PIN';
@@ -233,12 +251,9 @@ class _PinLockScreenState extends State<PinLockScreen> {
                 widget.isChangingPin
                     ? 'Please enter your current PIN to change it'
                     : widget.isDeletingPin
-                        ? 'Please enter your PIN to delete it'
-                        : 'Please enter your PIN to continue',
-                style: const TextStyle(
-                  fontSize: 16,
-                  color: Colors.grey,
-                ),
+                    ? 'Please enter your PIN to delete it'
+                    : 'Please enter your PIN to continue',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 40),
@@ -252,9 +267,10 @@ class _PinLockScreenState extends State<PinLockScreen> {
                         key: _formKey,
                         child: Container(
                           alignment: Alignment.center,
-                          margin: isLargeScreen
-                              ? const EdgeInsets.symmetric(horizontal: 200)
-                              : EdgeInsets.zero,
+                          margin:
+                              isLargeScreen
+                                  ? const EdgeInsets.symmetric(horizontal: 200)
+                                  : EdgeInsets.zero,
                           child: PinCodeTextField(
                             appContext: context,
                             length: 4,

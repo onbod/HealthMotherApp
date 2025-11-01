@@ -3,12 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../providers/user_session_provider.dart';
 import '../models/medication.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:timezone/timezone.dart' as tz;
 import '../services/notification_service.dart';
 import '../services/alarm_service.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:flutter/services.dart';
+import '../widgets/global_navigation.dart';
+import 'medication_screen.dart';
 
 // Top-level callback for alarm
 void medicationAlarmCallback() async {
@@ -38,8 +38,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   bool _alarmEnabled = false;
   String _selectedSound = '';
   String _selectedSoundTitle = 'Default Alarm';
-  static const MethodChannel _soundPickerChannel =
-      MethodChannel('com.example.healthymamaapp/sound_picker');
+  static const MethodChannel _soundPickerChannel = MethodChannel(
+    'com.example.healthymamaapp/sound_picker',
+  );
 
   @override
   void initState() {
@@ -59,9 +60,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       }
       _startDate = widget.medication!.startDate;
       _endDate = widget.medication!.endDate;
-      _selectedTimes = widget.medication!.reminderTimes
-          .map((dt) => TimeOfDay(hour: dt.hour, minute: dt.minute))
-          .toList();
+      _selectedTimes =
+          widget.medication!.reminderTimes
+              .map((dt) => TimeOfDay(hour: dt.hour, minute: dt.minute))
+              .toList();
       _alarmEnabled = widget.medication!.alarmEnabled;
       _selectedSound = widget.medication!.sound;
       _selectedSoundTitle =
@@ -118,9 +120,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
   Future<void> _selectTime(BuildContext context, int index) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialTime: _selectedTimes.length > index
-          ? _selectedTimes[index]
-          : TimeOfDay.now(),
+      initialTime:
+          _selectedTimes.length > index
+              ? _selectedTimes[index]
+              : TimeOfDay.now(),
     );
     if (picked != null) {
       setState(() {
@@ -157,16 +160,17 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
       final medicationName = _nameController.text;
 
       // Create a list of reminder times as DateTime objects
-      List<DateTime> reminderDateTimes = _selectedTimes.map((time) {
-        final now = DateTime.now();
-        return DateTime(
-          now.year,
-          now.month,
-          now.day,
-          time.hour,
-          time.minute,
-        );
-      }).toList();
+      List<DateTime> reminderDateTimes =
+          _selectedTimes.map((time) {
+            final now = DateTime.now();
+            return DateTime(
+              now.year,
+              now.month,
+              now.day,
+              time.hour,
+              time.minute,
+            );
+          }).toList();
 
       // Create the medication object
       final newMedication = Medication(
@@ -188,18 +192,24 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
         listen: false,
       );
 
+      // Convert Medication object to Map for storage
+      final medicationMap = newMedication.toMap();
+
       if (widget.medication != null) {
-        userSession.updateManualMedication(newMedication);
+        userSession.updateManualMedication(medicationMap);
       } else {
-        userSession.addManualMedication(newMedication);
+        userSession.addManualMedication(medicationMap);
       }
 
       // Schedule notifications for each reminder time
       final notificationService = NotificationService();
       await notificationService.schedulePeriodicMedicationNotifications();
 
-      // Schedule alarm if enabled (using AndroidAlarmManager and native alarm)
+      // Schedule alarm if enabled (using native alarm for better reliability)
       if (_alarmEnabled && reminderDateTimes.isNotEmpty) {
+        print(
+          'Scheduling ${reminderDateTimes.length} alarms for medication: $medicationName',
+        );
         for (int i = 0; i < reminderDateTimes.length; i++) {
           final reminderTime = reminderDateTimes[i];
           final now = DateTime.now();
@@ -211,24 +221,21 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
             reminderTime.minute,
           );
           // If the scheduled time is in the past for today, schedule for tomorrow
-          final alarmTime = scheduledTime.isAfter(now)
-              ? scheduledTime
-              : scheduledTime.add(const Duration(days: 1));
-          final delay = alarmTime.difference(now);
-          final uniqueAlarmId = medicationId.hashCode + i;
-          await AndroidAlarmManager.oneShot(
-            delay,
-            uniqueAlarmId,
-            medicationAlarmCallback,
-            exact: true,
-            wakeup: true,
+          final alarmTime =
+              scheduledTime.isAfter(now)
+                  ? scheduledTime
+                  : scheduledTime.add(const Duration(days: 1));
+
+          print(
+            'Scheduling alarm ${i + 1} for: $alarmTime with sound: $_selectedSound',
           );
-          // Schedule native alarm for reliability
+
+          // Schedule native alarm for better reliability
           await AlarmService.scheduleNativeAlarm(alarmTime, _selectedSound);
         }
       }
 
-      // Show a confirmation dialog and pop the screen after closing
+      // Show a confirmation dialog and navigate back to medication screen
       showDialog(
         context: context,
         builder: (context) {
@@ -243,7 +250,16 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               TextButton(
                 onPressed: () {
                   Navigator.of(context).pop(); // Close dialog
-                  Navigator.of(context).pop(); // Pop screen
+                  // Navigate back to medication screen
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder:
+                          (context) => const GlobalNavigation(
+                            currentIndex: 1,
+                            child: MedicationScreen(),
+                          ),
+                    ),
+                  );
                 },
                 child: const Text('OK'),
               ),
@@ -274,8 +290,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               _buildTextField(
                 controller: _nameController,
                 labelText: 'Medication Name',
-                validator: (value) =>
-                    value!.isEmpty ? 'Please enter medication name' : null,
+                validator:
+                    (value) =>
+                        value!.isEmpty ? 'Please enter medication name' : null,
               ),
               Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
@@ -305,8 +322,9 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                       }
                     });
                   },
-                  validator: (value) =>
-                      value == null ? 'Please select frequency' : null,
+                  validator:
+                      (value) =>
+                          value == null ? 'Please select frequency' : null,
                   items: const [
                     DropdownMenuItem(
                       value: 'Once daily',
@@ -370,8 +388,10 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Padding(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     child: Row(
                       children: [
                         Expanded(

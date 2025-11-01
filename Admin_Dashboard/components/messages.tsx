@@ -25,10 +25,12 @@ interface ChatSummary {
 
 interface MessageDoc {
   id: string
+  chatId: string
   senderId: string
   receiverId: string
   text: string
   timestamp: any
+  read?: boolean // Added for unread count calculation
 }
 
 export function getTotalUnreadCount(chats: ChatSummary[]): number {
@@ -39,25 +41,52 @@ export function Messages() {
   const [chats, setChats] = useState<ChatSummary[]>([])
   const [selectedChat, setSelectedChat] = useState<ChatSummary | null>(null)
   const [messages, setMessages] = useState<MessageDoc[]>([])
+  const [allMessages, setAllMessages] = useState<MessageDoc[]>([])
   const [loadingChats, setLoadingChats] = useState(true)
   const [replyContent, setReplyContent] = useState("")
   const [sending, setSending] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
-  const currentUserId = "admin"; // Replace with actual user ID from auth
+  const currentUserId = "health_worker"; // Or "admin" or get from auth
 
-  // Fetch chat list
+  // Fetch all messages and group by chat_id
   useEffect(() => {
     const fetchChats = async () => {
       setLoadingChats(true)
       try {
-        // Use dummy data for chats
-        setChats([
-          { id: "chat1", userId: "Patient A", healthWorkerId: "Health Worker 1", lastMessage: "How are you feeling today?", lastMessageTime: new Date("2023-10-26T10:00:00Z"), createdAt: new Date("2023-10-26T09:00:00Z"), unreadCount: 2 },
-          { id: "chat2", userId: "Patient B", healthWorkerId: "Health Worker 2", lastMessage: "I'm feeling better now.", lastMessageTime: new Date("2023-10-26T11:00:00Z"), createdAt: new Date("2023-10-26T10:00:00Z"), unreadCount: 0 },
-          { id: "chat3", userId: "Patient C", healthWorkerId: "Health Worker 1", lastMessage: "Can you send me the report?", lastMessageTime: new Date("2023-10-26T12:00:00Z"), createdAt: new Date("2023-10-26T11:00:00Z"), unreadCount: 1 },
-        ])
+        const res = await fetch("https://health-fhir-backend-production-6ae1.up.railway.app/api/chat_message")
+        const data = await res.json()
+        setAllMessages(data)
+        // Group messages by chat_id
+        const chatMap: { [chatId: string]: MessageDoc[] } = {}
+        data.forEach((msg: any) => {
+          if (!chatMap[msg.chat_id]) chatMap[msg.chat_id] = []
+          chatMap[msg.chat_id].push({
+            id: msg.id,
+            chatId: msg.chat_id,
+            senderId: msg.sender_id,
+            receiverId: msg.receiver_id,
+            text: msg.message,
+            timestamp: msg.timestamp,
+            read: msg.is_read,
+          })
+        })
+        const chatSummaries: ChatSummary[] = Object.entries(chatMap).map(([chatId, msgs]) => {
+          const sortedMsgs = msgs.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+          const lastMsg = sortedMsgs[sortedMsgs.length - 1]
+          return {
+            id: chatId, // chatId is the string identifier for the chat
+            userId: lastMsg.senderId === currentUserId ? lastMsg.receiverId : lastMsg.senderId,
+            healthWorkerId: lastMsg.senderId === currentUserId ? currentUserId : lastMsg.senderId,
+            lastMessage: lastMsg.text,
+            lastMessageTime: lastMsg.timestamp,
+            createdAt: sortedMsgs[0].timestamp,
+            unreadCount: sortedMsgs.filter(m => !m.read && m.receiverId === currentUserId).length,
+          }
+        })
+        setChats(chatSummaries)
       } catch (error) {
         console.error("Error fetching chats:", error)
+        setChats([])
       } finally {
         setLoadingChats(false)
       }
@@ -65,17 +94,15 @@ export function Messages() {
     fetchChats()
   }, [])
 
-  // Real-time messages for selected chat
+  // When a chat is selected, show only valid messages for that chat_id
   useEffect(() => {
     if (!selectedChat) return
-    // Use dummy data for messages
-    setMessages([
-      { id: "msg1", senderId: "health_worker", receiverId: "Patient A", text: "I'm feeling better now.", timestamp: new Date("2023-10-26T10:05:00Z") },
-      { id: "msg2", senderId: "Patient A", receiverId: "health_worker", text: "Great to hear that!", timestamp: new Date("2023-10-26T10:10:00Z") },
-      { id: "msg3", senderId: "Patient A", receiverId: "health_worker", text: "Can you send me the report?", timestamp: new Date("2023-10-26T10:15:00Z") },
-      { id: "msg4", senderId: "health_worker", receiverId: "Patient A", text: "Sure, I'll send it now.", timestamp: new Date("2023-10-26T10:20:00Z") },
-    ])
-  }, [selectedChat])
+    setMessages(
+      allMessages
+        .filter(m => m.chatId === selectedChat.id && m.text && m.senderId)
+        .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime())
+    )
+  }, [selectedChat, allMessages])
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
@@ -88,33 +115,61 @@ export function Messages() {
     if (!selectedChat || !replyContent.trim()) return
     setSending(true)
     try {
-      // Use dummy data for adding messages
-      setMessages(prevMessages => [...prevMessages, {
-        id: `msg${prevMessages.length + 1}`,
-        senderId: "health_worker",
-        receiverId: selectedChat.userId,
-        text: replyContent,
-        timestamp: new Date(),
-      }])
-      setReplyContent("")
-      // Update lastMessage and lastMessageTime in chat summary
-      // This part would typically involve a backend update, but for now, we'll just re-fetch or update locally
-      // For simplicity, we'll just re-fetch all chats to reflect the new message
-      setChats(prevChats => prevChats.map(chat => {
-        if (chat.id === selectedChat.id) {
-          return {
-            ...chat,
-            lastMessage: replyContent,
-            lastMessageTime: new Date(),
-            unreadCount: 0, // admin just sent
-            updatedAt: new Date(),
-            updatedBy: currentUserId,
-          }
+      const chatMessages = allMessages.filter(m => m.chatId === selectedChat.id)
+      let msg, newMsg
+      if (chatMessages.length > 0) {
+        // Reply to the last message
+        const lastMessage = chatMessages[chatMessages.length - 1]
+        const originalMessageId = lastMessage.id
+        const res = await fetch(`https://health-fhir-backend-production-6ae1.up.railway.app/api/chat_message/reply/${originalMessageId}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            reply: replyContent,
+            health_worker_id: 'health_worker',
+          })
+        })
+        if (!res.ok) throw new Error('Failed to send reply')
+        msg = await res.json()
+        newMsg = {
+          id: msg.id,
+          chatId: msg.chat_id || msg.chatId || selectedChat.id,
+          senderId: msg.sender_id || msg.senderId || 'health_worker',
+          receiverId: msg.receiver_id || msg.receiverId || selectedChat.userId,
+          text: msg.message || msg.reply || replyContent,
+          timestamp: msg.timestamp || new Date().toISOString(),
+          read: msg.is_read ?? msg.read ?? false,
         }
-        return chat
-      }))
+      } else {
+        // No previous messages, create a new message
+        const res = await fetch(`https://health-fhir-backend-production-6ae1.up.railway.app/api/chat_message/chat/${selectedChat.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sender_id: 'health_worker',
+            receiver_id: selectedChat.userId,
+            message: replyContent,
+            is_read: false,
+            timestamp: new Date().toISOString(),
+          })
+        })
+        if (!res.ok) throw new Error('Failed to send message')
+        msg = await res.json()
+        newMsg = {
+          id: msg.id,
+          chatId: msg.chat_id || msg.chatId || selectedChat.id,
+          senderId: msg.sender_id || msg.senderId || 'health_worker',
+          receiverId: msg.receiver_id || msg.receiverId || selectedChat.userId,
+          text: msg.message || replyContent,
+          timestamp: msg.timestamp || new Date().toISOString(),
+          read: msg.is_read ?? msg.read ?? false,
+        }
+      }
+      setMessages(prev => [...prev, newMsg])
+      setAllMessages(prev => [...prev, newMsg])
+      setReplyContent("")
     } catch (error) {
-      console.error("Error sending reply:", error)
+      alert("Error sending reply: " + (error as any).message)
     } finally {
       setSending(false)
     }
@@ -139,7 +194,7 @@ export function Messages() {
                   onClick={() => setSelectedChat(chat)}
                 >
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-maternal-blue-700 truncate">{chat.userId}</div>
+                    <div className="font-semibold text-maternal-blue-700 truncate">{chat.userId || chat.id}</div>
                     <div className="text-xs text-gray-500 truncate">{chat.lastMessage}</div>
                   </div>
                   {Number(chat.unreadCount || 0) > 0 && (
@@ -176,9 +231,9 @@ export function Messages() {
                 {messages.map(msg => (
                   <div
                     key={msg.id}
-                    className={`flex ${msg.senderId === "health_worker" ? 'justify-end' : 'justify-start'}`}
+                    className={`flex ${msg.senderId === 'health_worker' ? 'justify-end' : 'justify-start'}`}
                   >
-                    <div className={`rounded-2xl px-4 py-2 max-w-[70%] break-words shadow-sm ${msg.senderId === "health_worker" ? 'bg-maternal-blue-600 text-white' : 'bg-white text-gray-900 border'}`}>
+                    <div className={`rounded-2xl px-4 py-2 max-w-[70%] break-words shadow-sm ${msg.senderId === 'health_worker' ? 'bg-maternal-blue-600 text-white' : 'bg-white text-gray-900 border'}`}>
                       <div className="text-sm">{msg.text}</div>
                       <div className="text-xs text-gray-300 text-right mt-1">
                         {msg.timestamp?.toDate

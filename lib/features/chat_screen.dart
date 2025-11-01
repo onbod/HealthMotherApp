@@ -90,8 +90,21 @@ class _ChatScreenState extends State<ChatScreen> {
         'receiver_id': receiverId,
         'message': text,
         'who_guideline': 'Respectful communication',
-        'dak_guideline': 'Digital Adherence',
-        'fhir_resource': null,
+        'dak_guideline': 'DAK ANC Decision Support',
+        'fhir_resource': {
+          'resourceType': 'Communication',
+          'status': 'completed',
+          'category': {
+            'coding': [
+              {
+                'system': 'http://who.int/dak/anc',
+                'code': 'patient-communication',
+                'display': 'Patient Communication',
+              },
+            ],
+          },
+          'subject': {'reference': 'Patient/$senderId'},
+        },
       }),
     );
     setState(() {

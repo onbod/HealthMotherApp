@@ -3,6 +3,7 @@ import '../features/home_screen.dart';
 import '../features/medication_screen.dart';
 import '../features/visits_screen.dart';
 import '../features/resources_screen.dart';
+// Removed DAK dashboard import as navigation no longer includes DAK
 
 class GlobalNavigation extends StatefulWidget {
   final int currentIndex;
@@ -66,27 +67,37 @@ class _GlobalNavigationState extends State<GlobalNavigation> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: widget.child,
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: const Color(0xFF7C4DFF),
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.medication),
-            label: 'Medication',
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.only(
+            bottom:
+                MediaQuery.of(context).viewPadding.bottom > 0
+                    ? 0
+                    : 2, // Add 2px padding when no system bottom padding
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month),
-            label: 'Visits',
+          child: BottomNavigationBar(
+            currentIndex: _currentIndex,
+            onTap: _onItemTapped,
+            type: BottomNavigationBarType.fixed,
+            selectedItemColor: const Color(0xFF7C4DFF),
+            unselectedItemColor: Colors.grey,
+            items: const [
+              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.medication),
+                label: 'Medication',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.calendar_month),
+                label: 'Visits',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.library_books),
+                label: 'Resources',
+              ),
+            ],
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.library_books),
-            label: 'Resources',
-          ),
-        ],
+        ),
       ),
     );
   }

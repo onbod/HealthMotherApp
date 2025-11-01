@@ -77,75 +77,29 @@ export default function ReportList() {
       setLoading(true);
       setError(null);
       try {
-        // Simulate fetching reports from a local state or dummy data
-        const dummyReports: Report[] = [
-          {
-            id: "1",
-            clientName: "John Doe",
-            clientNumber: "123456",
-            createdAt: "2023-10-26T10:00:00Z",
-            description: "I observed a nurse being rude to a patient. The patient was in a wheelchair and the nurse pushed it aggressively. This is unacceptable behavior.",
-            facilityName: "Hospital A",
-            isAnonymous: false,
-            phoneNumber: "123-456-7890",
-            reportType: "Complaint",
-            fileUrls: ["https://example.com/report1.pdf", "https://example.com/report2.docx"],
-            isRead: false,
-            reply: "Thank you for your report. We have received it and are investigating the incident. We will take appropriate action.",
-            replySentAt: "2023-10-26T10:30:00Z",
-            replySentBy: "admin"
-          },
-          {
-            id: "2",
-            clientName: "Jane Smith",
-            clientNumber: "789012",
-            createdAt: "2023-10-25T14:00:00Z",
-            description: "I found a patient's personal belongings left unattended in the waiting area. This is a security risk.",
-            facilityName: "Clinic B",
-            isAnonymous: true,
-            phoneNumber: "",
-            reportType: "Incident",
-            fileUrls: ["https://example.com/report3.jpg"],
-            isRead: true,
-            reply: "Thank you for your report. We have received it and are investigating the incident. We will take appropriate action.",
-            replySentAt: "2023-10-25T14:30:00Z",
-            replySentBy: "admin"
-          },
-          {
-            id: "3",
-            clientName: "Peter Jones",
-            clientNumber: "345678",
-            createdAt: "2023-10-24T09:00:00Z",
-            description: "I noticed a doctor prescribing medication without proper consultation. The patient was in pain and the doctor insisted on giving it.",
-            facilityName: "Hospital A",
-            isAnonymous: false,
-            phoneNumber: "987-654-3210",
-            reportType: "Feedback",
-            fileUrls: [],
-            isRead: true,
-            reply: "Thank you for your feedback. We have received it and are reviewing the doctor's conduct. We will ensure proper consultation in the future.",
-            replySentAt: "2023-10-24T09:30:00Z",
-            replySentBy: "admin"
-          },
-          {
-            id: "4",
-            clientName: "Anonymous",
-            clientNumber: "901234",
-            createdAt: "2023-10-23T11:00:00Z",
-            description: "I observed a staff member stealing patient belongings. This is a serious security breach.",
-            facilityName: "Clinic B",
-            isAnonymous: true,
-            phoneNumber: "",
-            reportType: "Incident",
-            fileUrls: ["https://example.com/report4.txt"],
-            isRead: false,
-            reply: "Thank you for your report. We have received it and are investigating the incident. We will take appropriate action.",
-            replySentAt: "2023-10-23T11:30:00Z",
-            replySentBy: "admin"
-          },
-        ];
-        setReports(dummyReports);
-      } catch (err) {
+        // Fetch real reports from backend
+        const res = await fetch("https://health-fhir-backend-production-6ae1.up.railway.app/report");
+        if (!res.ok) throw new Error("Failed to fetch reports");
+        const data = await res.json();
+        // Map backend data to Report interface if needed
+        const reports: Report[] = data.map((r: any) => ({
+          id: r.id?.toString() || r._id?.toString() || Math.random().toString(),
+          clientName: r.clientName || r.client_name || "-",
+          clientNumber: r.clientNumber || r.client_number || "-",
+          createdAt: r.createdAt || r.created_at || new Date().toISOString(),
+          description: r.description || "-",
+          facilityName: r.facilityName || r.facility_name || "-",
+          isAnonymous: r.isAnonymous ?? r.anonymous ?? false,
+          phoneNumber: r.phoneNumber || r.phone_number || "-",
+          reportType: r.reportType || r.report_type || "-",
+          fileUrls: r.fileUrls || r.file_urls || [],
+          isRead: r.isRead ?? false,
+          reply: r.reply,
+          replySentAt: r.replySentAt,
+          replySentBy: r.replySentBy,
+        }));
+        setReports(reports);
+      } catch (err: any) {
         setError("Failed to fetch reports.");
       } finally {
         setLoading(false);
@@ -190,23 +144,7 @@ If you have any additional information or questions, please don't hesitate to co
 Best regards,
 The HealthMama Support Team`;
 
-      // Update Firebase - create isRead and reply fields
-      // const reportRef = doc(db, "report", reportId); // Removed Firebase
-      // console.log('Firebase document reference:', reportRef); // Removed Firebase
-      
-      // const updateData = { // Removed Firebase
-      //   isRead: true,
-      //   lastReadAt: new Date().toISOString(),
-      //   reply: responseMessage,
-      //   replySentAt: new Date().toISOString(),
-      //   replySentBy: "admin"
-      // };
-      
-      // console.log('Creating/updating isRead and reply fields with data:', updateData); // Removed Firebase
-      // await updateDoc(reportRef, updateData); // Removed Firebase
-      
-      // console.log('Successfully marked report as read and sent reply in Firebase'); // Removed Firebase
-      
+    
       // Show success notification
       const successMessage = `Report marked as read and response sent to ${report.isAnonymous ? 'Anonymous Reporter' : report.clientName}`;
       console.log(successMessage);
@@ -244,18 +182,7 @@ The HealthMama Support Team`;
         report.id === reportId ? { ...report, isRead: false } : report
       ));
       
-      // Update Firebase - create isRead field if it doesn't exist
-      // const reportRef = doc(db, "report", reportId); // Removed Firebase
-      // console.log('Firebase document reference:', reportRef); // Removed Firebase
-      
-      // const updateData = { // Removed Firebase
-      //   isRead: false,
-      //   lastReadAt: null
-      // };
-      
-      // console.log('Creating/updating isRead field with data:', updateData); // Removed Firebase
-      // await updateDoc(reportRef, updateData); // Removed Firebase
-      
+     
       // console.log('Successfully marked report as unread in Firebase'); // Removed Firebase
     } catch (error: any) {
       console.error("Error marking report as unread:", error);
@@ -269,13 +196,7 @@ The HealthMama Support Team`;
       
       // Show more specific error message
       let errorMessage = "Failed to mark report as unread. Please try again.";
-      // if (error.code === 'permission-denied') { // Removed Firebase
-      //   errorMessage = "Permission denied. Please update your Firestore security rules to allow write access to the 'report' collection. Go to Firebase Console → Firestore Database → Rules and add: allow read, write: if true;"; // Removed Firebase
-      // } else if (error.code === 'not-found') { // Removed Firebase
-      //   errorMessage = "Report not found. It may have been deleted."; // Removed Firebase
-      // } else if (error.code === 'unavailable') { // Removed Firebase
-      //   errorMessage = "Network error. Please check your internet connection."; // Removed Firebase
-      // }
+    
       
       alert(errorMessage);
     }
@@ -555,39 +476,7 @@ The HealthMama Support Team`);
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header Section */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div className="space-y-2">
-          <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">Reports Dashboard</h1>
-          <p className="text-gray-600 text-lg">
-            Monitor and manage whistleblower reports from healthcare facilities
-          </p>
-        </div>
-        <div className="flex items-center space-x-2">
-          <Badge variant="secondary" className="text-sm">
-            <Shield className="w-4 h-4 mr-1" />
-            Secure & Anonymous
-          </Badge>
-          {filteredReports.filter(r => !r.isRead).length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={async () => {
-                const unreadReports = filteredReports.filter(r => !r.isRead);
-                for (const report of unreadReports) {
-                  await markAsRead(report.id);
-                }
-              }}
-              className="text-orange-600 border-orange-200 hover:bg-orange-50"
-            >
-              <Eye className="h-4 w-4 mr-1" />
-              Mark All as Read & Respond
-            </Button>
-          )}
-        </div>
-      </div>
-
+    <div className="space-y-4 sm:space-y-6">
       {/* Enhanced Statistics Cards */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         <Card className="relative overflow-hidden border-0 shadow-lg bg-gradient-to-br from-red-500 to-red-600 text-white">
@@ -646,54 +535,6 @@ The HealthMama Support Team`);
           </CardContent>
         </Card>
       </div>
-
-      {/* Enhanced Search & Filter */}
-      <Card className="border-0 shadow-sm bg-white/50 backdrop-blur-sm">
-        <CardContent className="pt-6">
-          <div className="flex flex-col lg:flex-row items-stretch lg:items-center space-y-3 lg:space-y-0 lg:space-x-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-          <Input
-                placeholder="Search reports by content, facility, or reporter..."
-                className="pl-10 h-12 border-gray-200 focus:border-maternal-green-500 focus:ring-maternal-green-500"
-            value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
-          />
-        </div>
-        <Select value={searchField} onValueChange={setSearchField}>
-              <SelectTrigger className="w-full lg:w-[200px] h-12 border-gray-200">
-                <SelectValue placeholder="Filter by field" />
-          </SelectTrigger>
-          <SelectContent>
-            {searchFields.map(field => (
-              <SelectItem key={field.value} value={field.value}>
-                {field.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-            <Select value={readFilter} onValueChange={(value: "all" | "read" | "unread") => setReadFilter(value)}>
-              <SelectTrigger className="w-full lg:w-[150px] h-12 border-gray-200">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Reports</SelectItem>
-                <SelectItem value="unread">Unread</SelectItem>
-                <SelectItem value="read">Read</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select value={sortBy} onValueChange={(value: "date" | "read") => setSortBy(value)}>
-              <SelectTrigger className="w-full lg:w-[150px] h-12 border-gray-200">
-                <SelectValue placeholder="Sort by" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="date">Date (Newest)</SelectItem>
-                <SelectItem value="read">Read Status</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-        </CardContent>
-      </Card>
 
       {/* Enhanced Reports Table */}
       <Card className="border-0 shadow-lg overflow-hidden">

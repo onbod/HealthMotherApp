@@ -28,19 +28,30 @@ void _scheduleNotificationsCallback() async {
   final medicationsJson = prefs.getStringList('manualMedications');
 
   if (medicationsJson != null) {
-    final medications = medicationsJson
-        .map((json) => Medication.fromMap(jsonDecode(json)))
-        .toList();
+    final medications =
+        medicationsJson
+            .map((json) => Medication.fromMap(jsonDecode(json)))
+            .toList();
 
     for (final medication in medications) {
       for (int i = 0; i < medication.reminderTimes.length; i++) {
         final time = medication.reminderTimes[i];
         final now = tz.TZDateTime.now(tz.local);
         final scheduledTime = tz.TZDateTime(
-            tz.local, now.year, now.month, now.day, time.hour, time.minute);
+          tz.local,
+          now.year,
+          now.month,
+          now.day,
+          time.hour,
+          time.minute,
+        );
 
-        if (now.isAfter(scheduledTime) &&
-            now.difference(scheduledTime).inMinutes < 1) {
+        // Check if it's time for the medication (within 1 minute window)
+        final timeDifference = now.difference(scheduledTime).inMinutes;
+        if (timeDifference >= 0 && timeDifference < 1) {
+          print(
+            'Medication time reached for ${medication.name} at ${time.hour}:${time.minute}',
+          );
           if (medication.alarmEnabled) {
             await AlarmService.start();
           } else {
@@ -114,7 +125,11 @@ class NotificationService {
         print('Exact alarm permission denied');
       }
     } catch (e) {
-      print('Error requesting permissions: $e');
+      // Silently catch permission errors during initialization
+      // These can occur if the activity context is not ready
+      if (kDebugMode) {
+        print('Error requesting permissions: $e');
+      }
     }
   }
 
@@ -126,13 +141,13 @@ class NotificationService {
     try {
       const AndroidNotificationDetails androidPlatformChannelSpecifics =
           AndroidNotificationDetails(
-        'reminder_channel',
-        'Reminders',
-        channelDescription: 'Channel for reminder notifications',
-        importance: Importance.max,
-        priority: Priority.high,
-        showWhen: true,
-      );
+            'reminder_channel',
+            'Reminders',
+            channelDescription: 'Channel for reminder notifications',
+            importance: Importance.max,
+            priority: Priority.high,
+            showWhen: true,
+          );
       const NotificationDetails platformChannelSpecifics = NotificationDetails(
         android: androidPlatformChannelSpecifics,
       );
@@ -249,13 +264,13 @@ class NotificationService {
     try {
       const AndroidNotificationDetails androidPlatformChannelSpecifics =
           AndroidNotificationDetails(
-        'test_channel',
-        'Test Notifications',
-        channelDescription: 'Channel for test notifications',
-        importance: Importance.max,
-        priority: Priority.high,
-        showWhen: true,
-      );
+            'test_channel',
+            'Test Notifications',
+            channelDescription: 'Channel for test notifications',
+            importance: Importance.max,
+            priority: Priority.high,
+            showWhen: true,
+          );
       const NotificationDetails platformChannelSpecifics = NotificationDetails(
         android: androidPlatformChannelSpecifics,
       );
@@ -315,13 +330,14 @@ class NotificationService {
       }
 
       // Query reports where the user is the client and has a reply from admin
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('report')
-          .where('clientNumber', isEqualTo: clientNumber)
-          .where('reply', isNull: false)
-          .where('reply', isNotEqualTo: '')
-          .orderBy('replySentAt', descending: true)
-          .get();
+      final querySnapshot =
+          await FirebaseFirestore.instance
+              .collection('report')
+              .where('clientNumber', isEqualTo: clientNumber)
+              .where('reply', isNull: false)
+              .where('reply', isNotEqualTo: '')
+              .orderBy('replySentAt', descending: true)
+              .get();
 
       final List<app_notification.Notification> notifications = [];
 
@@ -333,9 +349,10 @@ class NotificationService {
               id: doc.id,
               title: 'Response to Your Report',
               body: data['reply'],
-              timestamp: data['replySentAt'] != null
-                  ? DateTime.parse(data['replySentAt'])
-                  : DateTime.now(),
+              timestamp:
+                  data['replySentAt'] != null
+                      ? DateTime.parse(data['replySentAt'])
+                      : DateTime.now(),
               isRead: data['isRead'] ?? false,
             ),
           );
@@ -366,9 +383,9 @@ class NotificationService {
           .collection('report')
           .doc(notificationId)
           .update({
-        'isRead': true,
-        'lastReadAt': DateTime.now().toIso8601String(),
-      });
+            'isRead': true,
+            'lastReadAt': DateTime.now().toIso8601String(),
+          });
     } catch (e) {
       print('Error marking notification as read: $e');
       rethrow;
@@ -395,9 +412,9 @@ class NotificationService {
           .collection('report')
           .doc(notificationId)
           .update({
-        'deleted': true,
-        'deletedAt': DateTime.now().toIso8601String(),
-      });
+            'deleted': true,
+            'deletedAt': DateTime.now().toIso8601String(),
+          });
     } catch (e) {
       print('Error deleting notification: $e');
       rethrow;
@@ -411,11 +428,12 @@ class NotificationService {
 
       // Only filter by clientNumber and isRead == false
       if (clientNumber.isNotEmpty) {
-        final querySnapshot = await FirebaseFirestore.instance
-            .collection('report')
-            .where('clientNumber', isEqualTo: clientNumber)
-            .where('isRead', isEqualTo: false)
-            .get();
+        final querySnapshot =
+            await FirebaseFirestore.instance
+                .collection('report')
+                .where('clientNumber', isEqualTo: clientNumber)
+                .where('isRead', isEqualTo: false)
+                .get();
 
         // Optionally filter out deleted notifications on the client side
         final docs = querySnapshot.docs.where(
@@ -458,22 +476,23 @@ class NotificationService {
           .orderBy('replySentAt', descending: true)
           .snapshots()
           .map((snapshot) {
-        final filteredDocs = snapshot.docs.where(
-          (doc) => doc.data()['deleted'] != true,
-        );
-        return filteredDocs.map((doc) {
-          final data = doc.data();
-          return app_notification.Notification(
-            id: doc.id,
-            title: 'Response to Your Report',
-            body: data['reply'],
-            timestamp: data['replySentAt'] != null
-                ? DateTime.parse(data['replySentAt'])
-                : DateTime.now(),
-            isRead: data['isRead'] ?? false,
-          );
-        }).toList();
-      });
+            final filteredDocs = snapshot.docs.where(
+              (doc) => doc.data()['deleted'] != true,
+            );
+            return filteredDocs.map((doc) {
+              final data = doc.data();
+              return app_notification.Notification(
+                id: doc.id,
+                title: 'Response to Your Report',
+                body: data['reply'],
+                timestamp:
+                    data['replySentAt'] != null
+                        ? DateTime.parse(data['replySentAt'])
+                        : DateTime.now(),
+                isRead: data['isRead'] ?? false,
+              );
+            }).toList();
+          });
     } catch (e) {
       print('Error setting up notifications stream: $e');
       return Stream.value([]);
@@ -485,7 +504,8 @@ class NotificationService {
     await AndroidAlarmManager.cancel(alarmId); // Cancel any existing alarm
     await AndroidAlarmManager.periodic(
       const Duration(
-          minutes: 1), // Check every minute for more responsive alarms
+        minutes: 1,
+      ), // Check every minute for more responsive alarms
       alarmId,
       _scheduleNotificationsCallback,
       exact: true,
@@ -493,7 +513,8 @@ class NotificationService {
       rescheduleOnReboot: true,
     );
     print(
-        'Periodic medication notification scheduling enabled (checking every minute).');
+      'Periodic medication notification scheduling enabled (checking every minute).',
+    );
   }
 
   Future<void> scheduleMedicationNotification({
@@ -518,9 +539,10 @@ class NotificationService {
     final androidDetails = AndroidNotificationDetails(
       alarmEnabled ? 'medication_alarm' : 'medication_reminders_daily',
       alarmEnabled ? 'Medication Alarm' : 'Daily Medication Reminders',
-      channelDescription: alarmEnabled
-          ? 'Alarms for medication reminders'
-          : 'Daily reminders to take your medication',
+      channelDescription:
+          alarmEnabled
+              ? 'Alarms for medication reminders'
+              : 'Daily reminders to take your medication',
       importance: Importance.max,
       priority: Priority.high,
       playSound: true,

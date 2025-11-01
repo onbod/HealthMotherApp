@@ -5,14 +5,13 @@ import 'package:flutter/services.dart';
 import '../providers/user_session_provider.dart';
 import 'home_screen.dart';
 import '../widgets/shared_app_bar.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class PinSetupScreen extends StatefulWidget {
   final bool isChangingPin;
 
-  const PinSetupScreen({
-    Key? key,
-    this.isChangingPin = false,
-  }) : super(key: key);
+  const PinSetupScreen({Key? key, this.isChangingPin = false})
+    : super(key: key);
 
   @override
   State<PinSetupScreen> createState() => _PinSetupScreenState();
@@ -30,6 +29,15 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   @override
   void initState() {
     super.initState();
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
+        );
+      });
+      return;
+    }
     _pinController.addListener(_onPinChanged);
   }
 
@@ -145,9 +153,10 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       child: Scaffold(
         backgroundColor: const Color(0xFFF3F4F6),
         appBar: SharedAppBar(
-          visitNumber: widget.isChangingPin
-              ? (_isConfirmingPin ? 'Confirm New PIN' : 'Enter New PIN')
-              : (_isConfirmingPin ? 'Confirm PIN' : 'Create PIN'),
+          visitNumber:
+              widget.isChangingPin
+                  ? (_isConfirmingPin ? 'Confirm New PIN' : 'Enter New PIN')
+                  : (_isConfirmingPin ? 'Confirm PIN' : 'Create PIN'),
           onNotificationPressed: () {
             // Handle notification press
           },
@@ -179,10 +188,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                       : (_isConfirmingPin
                           ? 'Please confirm your PIN'
                           : 'Please create a 4-digit PIN to secure your account'),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey,
-                  ),
+                  style: const TextStyle(fontSize: 16, color: Colors.grey),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 40),
@@ -198,10 +204,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                     maxLength: 4,
                     obscureText: _obscurePin,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      letterSpacing: 8,
-                    ),
+                    style: const TextStyle(fontSize: 24, letterSpacing: 8),
                     decoration: InputDecoration(
                       border: InputBorder.none,
                       counterText: '',
@@ -222,9 +225,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                         },
                       ),
                     ),
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly,
-                    ],
+                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   ),
                 ),
                 if (_errorMessage.isNotEmpty)
@@ -232,10 +233,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                     padding: const EdgeInsets.only(top: 16.0),
                     child: Text(
                       _errorMessage,
-                      style: const TextStyle(
-                        color: Colors.red,
-                        fontSize: 14,
-                      ),
+                      style: const TextStyle(color: Colors.red, fontSize: 14),
                       textAlign: TextAlign.center,
                     ),
                   ),
@@ -252,19 +250,21 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: _isLoading
-                        ? const CircularProgressIndicator(
-                            valueColor:
-                                AlwaysStoppedAnimation<Color>(Colors.white),
-                          )
-                        : Text(
-                            _isConfirmingPin ? 'Confirm PIN' : 'Continue',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                    child:
+                        _isLoading
+                            ? const CircularProgressIndicator(
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
+                              ),
+                            )
+                            : Text(
+                              _isConfirmingPin ? 'Confirm PIN' : 'Continue',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
                   ),
                 ),
               ],

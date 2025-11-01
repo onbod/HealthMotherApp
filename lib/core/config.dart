@@ -5,7 +5,7 @@ class AppConfig {
   // Alternative URLs for different environments
   static const String localNetworkUrl = 'http://192.168.1.145:3000';
   static const String productionUrl =
-      'https://health-fhir-backend-production.up.railway.app';
+      'https://health-fhir-backend-production-6ae1.up.railway.app';
 
   // Get the appropriate backend URL based on environment
   static String getBackendUrl() {

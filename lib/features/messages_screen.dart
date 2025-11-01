@@ -43,22 +43,18 @@ class _MessagesScreenState extends State<MessagesScreen> {
       currentIndex: 0,
       child: Scaffold(
         backgroundColor: const Color(0xFFF3F4F6),
-        appBar: SharedAppBar(
-          visitNumber: 'Messages',
-          isHomeScreen: false,
-        ),
-        body: _isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : _chatIds.isEmpty
+        appBar: SharedAppBar(visitNumber: 'Messages', isHomeScreen: false),
+        body:
+            _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _chatIds.isEmpty
                 ? _buildEmptyState()
                 : _buildChatList(),
         floatingActionButton: FloatingActionButton(
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(
-                builder: (context) => const ChatScreen(),
-              ),
+              MaterialPageRoute(builder: (context) => const ChatScreen()),
             );
           },
           backgroundColor: const Color(0xFF7C4DFF),
@@ -73,11 +69,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.chat_bubble_outline,
-            size: 64,
-            color: Colors.grey[400],
-          ),
+          Icon(Icons.chat_bubble_outline, size: 64, color: Colors.grey[400]),
           const SizedBox(height: 16),
           Text(
             'No messages yet',
@@ -90,10 +82,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
           const SizedBox(height: 8),
           Text(
             'Start a conversation with a health worker',
-            style: TextStyle(
-              fontSize: 14,
-              color: Colors.grey[500],
-            ),
+            style: TextStyle(fontSize: 14, color: Colors.grey[500]),
           ),
           const SizedBox(height: 16),
           ElevatedButton(
@@ -101,9 +90,7 @@ class _MessagesScreenState extends State<MessagesScreen> {
               // Navigate to chat screen with demo data
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => const ChatScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const ChatScreen()),
               );
             },
             style: ElevatedButton.styleFrom(
@@ -162,33 +149,23 @@ class _MessagesScreenState extends State<MessagesScreen> {
                 ),
                 title: Text(
                   latestMessage.isUserMessage ? 'You' : 'AI Assistant',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 subtitle: Text(
                   latestMessage.text,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: Colors.grey[600],
-                    fontSize: 13,
-                  ),
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
                 ),
                 trailing: Text(
                   _formatTimestamp(latestMessage.timestamp),
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[500],
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey[500]),
                 ),
                 onTap: () {
                   // Navigate to the real-time chat screen
                   Navigator.push(
                     context,
-                    MaterialPageRoute(
-                      builder: (context) => const ChatScreen(),
-                    ),
+                    MaterialPageRoute(builder: (context) => const ChatScreen()),
                   );
                 },
               ),
@@ -237,8 +214,9 @@ class _ChatDetailScreenState extends State<_ChatDetailScreen> {
 
   Future<void> _loadMessages() async {
     try {
-      final messages =
-          await _chatHistoryService.getMessagesForChat(widget.chatId);
+      final messages = await _chatHistoryService.getMessagesForChat(
+        widget.chatId,
+      );
       setState(() {
         _messages = messages;
         _isLoading = false;
@@ -259,18 +237,19 @@ class _ChatDetailScreenState extends State<_ChatDetailScreen> {
         backgroundColor: const Color(0xFF7C4DFF),
         foregroundColor: Colors.white,
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _messages.isEmpty
+      body:
+          _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : _messages.isEmpty
               ? const Center(child: Text('No messages in this chat'))
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: _messages.length,
-                  itemBuilder: (context, index) {
-                    final message = _messages[index];
-                    return _buildMessageBubble(message);
-                  },
-                ),
+                padding: const EdgeInsets.all(16),
+                itemCount: _messages.length,
+                itemBuilder: (context, index) {
+                  final message = _messages[index];
+                  return _buildMessageBubble(message);
+                },
+              ),
     );
   }
 

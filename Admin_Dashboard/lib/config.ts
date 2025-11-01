@@ -2,10 +2,10 @@
 export const config = {
   // API Configuration
   api: {
-    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'https://health-fhir-backend-production.up.railway.app',
+    baseUrl: process.env.NEXT_PUBLIC_API_URL || 'https://health-fhir-backend-production-6ae1.up.railway.app',
     endpoints: {
       login: '/admin/login',
-      patients: '/fhir/Patient',
+      patients: '/api/patient',
       fhir: '/fhir',
       metadata: '/metadata',
     }

@@ -181,7 +181,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                     <Input
                       id="email"
                       type="email"
-                      placeholder="sahrdauda@gmail.com"
+                      placeholder="ibrahimswaray430@gmail.com"
                       value={formData.email}
                       onChange={(e) => handleInputChange("email", e.target.value)}
                       className={`pl-10 h-11 sm:h-12 text-base bg-white/70 border-maternal-green-300 focus:border-maternal-green-500 focus:ring-2 focus:ring-maternal-green-500/20 ${
@@ -268,10 +268,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   <div className="bg-gradient-to-r from-maternal-green-50 to-maternal-blue-50 p-3 sm:p-4 rounded-lg border border-maternal-green-200">
                     <div className="font-mono text-xs sm:text-sm text-maternal-brown-700 space-y-1">
                       <div>
-                        <span className="font-medium text-maternal-brown-600">APP Admin:</span> doctor@maternalcare.com / dauda2019
-                      </div>
-                      <div>
-                        <span className="font-medium text-maternal-brown-600">Clinician:</span> clinician@maternalcare.com / clinician2024
+                        <span className="font-medium text-maternal-brown-600">APP Admin:</span> ibrahimswaray430@gmail.com / dauda2019
                       </div>
                     </div>
                   </div>

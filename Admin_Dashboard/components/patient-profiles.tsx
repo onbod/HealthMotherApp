@@ -13,6 +13,8 @@ import {
   X,
   ChevronDown,
   SlidersHorizontal,
+  Lock,
+  Unlock,
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -30,6 +32,8 @@ import { useIsMobile } from "@/hooks/use-mobile"
 import { useRouter } from "next/navigation"
 import { PatientDetail } from "@/components/patient-detail"
 import { toFhirPatient, toFhirEncounter } from "../lib/fhir-resources"
+import { getApiUrl } from "../lib/config";
+import { mapFhirPatientToPatient } from "../lib/patient";
 
 interface PatientProfilesProps {
   onSelectPatient: (patientId: string) => void
@@ -57,6 +61,28 @@ const contactSchedule = [
   { contact: 7, ga: 36, label: "36 weeks" },
   { contact: 8, ga: 38, label: "38–40 weeks" },
 ]
+
+// WHO ANC contact schedule
+const ancSchedule = [
+  { contact: 1, ga: 12, label: "≤ 12 weeks", timing: "1st trimester" },
+  { contact: 2, ga: 16, label: "13–16 weeks", timing: "2nd trimester" },
+  { contact: 3, ga: 20, label: "20 weeks", timing: "2nd trimester" },
+  { contact: 4, ga: 26, label: "26 weeks", timing: "2nd trimester" },
+  { contact: 5, ga: 30, label: "30 weeks", timing: "3rd trimester" },
+  { contact: 6, ga: 34, label: "34 weeks", timing: "3rd trimester" },
+  { contact: 7, ga: 36, label: "36 weeks", timing: "3rd trimester" },
+  { contact: 8, ga: 38, label: "38–40 weeks", timing: "3rd trimester" },
+];
+
+function getTrimester(weeks: number) {
+  if (weeks <= 12) return "1st trimester";
+  if (weeks <= 26) return "2nd trimester";
+  return "3rd trimester";
+}
+
+function getNextAncVisit(currentWeeks: number) {
+  return ancSchedule.find(v => currentWeeks < v.ga) || null;
+}
 
 // Helper to get latest visit info (GA and date)
 function getLatestVisitInfo(data: any) {
@@ -113,131 +139,235 @@ const calculateAge = (birthDate: string) => {
   return age;
 };
 
-const getTrimester = (weeks: number) => {
-  if (weeks < 13) return "1st";
-  if (weeks < 27) return "2nd";
-  if (weeks < 41) return "3rd";
-  return "Postpartum";
-};
-
 const defaultAppointments = 8;
 const todayStr = new Date().toISOString();
 
+// Typed fetch hook
+export function useFetch<T = any[]>(endpoint: string): T {
+  const [data, setData] = useState<T>([] as unknown as T);
+  useEffect(() => {
+    console.log('useFetch calling:', getApiUrl(endpoint));
+    fetch(getApiUrl(endpoint))
+      .then(res => {
+        console.log('useFetch response status:', res.status, 'for endpoint:', endpoint);
+        return res.ok ? res.json() : [];
+      })
+      .then(res => {
+        console.log('useFetch', endpoint, 'response:', res); // Debug log
+        setData((Array.isArray(res) ? res : []) as T);
+      })
+      .catch((error) => {
+        console.error('useFetch error for endpoint:', endpoint, error);
+        setData([] as unknown as T);
+      });
+  }, [endpoint]);
+  return data;
+}
+
+// Patient mapping helper
+function mapApiPatientToFrontend(patient: any) {
+  return {
+    id: patient.id, // numeric id for visit matching
+    name: patient.name?.[0]?.text || patient.client_number || '',
+    age: patient.age || (patient.birth_date ? new Date().getFullYear() - new Date(patient.birth_date).getFullYear() : 0),
+    phone: patient.phone,
+    email: patient.email || '',
+    address: patient.address?.text || (Array.isArray(patient.address?.line) ? patient.address.line.join(', ') : ''),
+    emergencyContact: patient.emergency_contact?.name || patient.emergency_contact?.phone || '',
+    riskLevel: patient.risk_level || 'Low',
+    status: patient.status || 'Active',
+    weeks: patient.weeks || 0,
+    dueDate: patient.due_date || '',
+    clientNumber: patient.client_number,
+    birthDate: patient.birth_date,
+    // Add more fields as needed
+  };
+}
+
+// ANC Visit Cards for a Patient
+export function PatientVisitsTabs({ patientId, patientName }: { patientId: number, patientName?: string }) {
+  const ancVisits = useFetch<any[]>('/api/anc_visit');
+  const postnatalVisits = useFetch<any[]>('/api/postnatal_visit');
+  const deliveries = useFetch<any[]>('/api/delivery');
+  const [tab, setTab] = useState<'anc' | 'postnatal' | 'delivery'>('anc');
+
+  // Add state for selected visit and modal
+  const [selectedVisit, setSelectedVisit] = useState<any | null>(null);
+  const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
+
+  // Use patient's numeric id to filter visits by patient_id
+  const patientAncVisits = Array.isArray(ancVisits) && patientId
+    ? ancVisits.filter((v: any) => v.patient_id === patientId)
+    : [];
+  const maxVisit = Math.max(0, ...patientAncVisits.map((v: any) => Number(v.visit_number)));
+  const ancByNumber: Record<number, any> = {};
+  patientAncVisits.forEach((v: any) => { ancByNumber[Number(v.visit_number)] = v; });
+  const patientPostnatal = Array.isArray(postnatalVisits) && patientId
+    ? postnatalVisits.filter((v: any) => v.patient_id === patientId)
+    : [];
+  const patientDeliveries = Array.isArray(deliveries) && patientId
+    ? deliveries.filter((d: any) => d.patient_id === patientId)
+    : [];
+
+  return (
+    <div>
+      {/* Tabs */}
+      <div className="flex space-x-4 border-b mb-6">
+        <button className={tab === 'anc' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-500'}
+          onClick={() => setTab('anc')}>ANC Visits</button>
+        <button className={tab === 'postnatal' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-500'}
+          onClick={() => setTab('postnatal')}>Postnatal Visits</button>
+        <button className={tab === 'delivery' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-500'}
+          onClick={() => setTab('delivery')}>Delivery</button>
+      </div>
+
+      {/* ANC Visits: 8 Cards */}
+      {tab === 'anc' && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {[1,2,3,4,5,6,7,8].map(num => {
+            const visit = ancByNumber[num];
+            const isUnlocked = num <= maxVisit;
+            return (
+              <div
+                key={num}
+                className={`bg-white rounded-lg shadow p-4 flex flex-col items-center border border-gray-100 relative ${isUnlocked && visit ? "cursor-pointer hover:shadow-lg" : "opacity-60"}`}
+                onClick={() => {
+                  if (isUnlocked && visit) {
+                    setSelectedVisit(visit);
+                    setIsVisitModalOpen(true);
+                  }
+                }}
+                style={{ pointerEvents: isUnlocked && visit ? "auto" : "none" }}
+              >
+                {/* Padlock icon */}
+                <div className="absolute top-2 right-2">
+                  {isUnlocked ? (
+                    <Unlock className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <Lock className="h-5 w-5 text-gray-400" />
+                  )}
+                </div>
+                <div className="text-xs text-gray-500 mb-1">Visit {num}</div>
+                {visit ? (
+                  <>
+                    <div className="font-bold text-lg text-blue-700">{visit.visit_date ? new Date(visit.visit_date).toLocaleDateString() : '—'}</div>
+                    <div className="text-sm mt-2">BP: {visit.systolic_bp}/{visit.diastolic_bp}</div>
+                    <div className="text-sm">Weight: {visit.weight} kg</div>
+                  </>
+                ) : (
+                  <div className="text-gray-400 text-sm mt-4">No data</div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Visit Details Modal */}
+      <Dialog open={isVisitModalOpen} onOpenChange={setIsVisitModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              <div className="flex items-center gap-3 mb-2">
+                {/* Icon */}
+                <span className="inline-flex items-center justify-center rounded-full bg-blue-100 p-2">
+                  <Heart className="h-5 w-5 text-blue-600" />
+                </span>
+                <div>
+                  <div className="text-lg font-bold text-gray-900">
+                    {patientName || 'Patient'}
+                  </div>
+                  <div className="text-sm text-gray-600 font-medium">
+                    Visit {selectedVisit?.visit_number ? `#${selectedVisit.visit_number}` : ''} Details
+                  </div>
+                </div>
+              </div>
+            </DialogTitle>
+          </DialogHeader>
+          {selectedVisit ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
+              {Object.entries(selectedVisit).map(([key, value]) => (
+                <div key={key} className="border rounded-lg bg-gray-50 p-3 flex flex-col mb-1">
+                  <span className="font-semibold text-gray-700 mb-1 text-xs uppercase tracking-wide">{prettifyKey(key)}</span>
+                  <span className="text-gray-900 text-sm break-all">{typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div>No data available for this visit.</div>
+          )}
+        </DialogContent>
+      </Dialog>
+      {/* Postnatal Visits Table */}
+      {tab === 'postnatal' && (
+        <div className="overflow-x-auto mt-4">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Visit #</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {patientPostnatal.length === 0 ? (
+                <tr><td colSpan={3} className="text-center text-gray-400 py-4">No postnatal visits available.</td></tr>
+              ) : (
+                patientPostnatal.map((v: any, i: number) => (
+                  <tr key={i}>
+                    <td className="px-4 py-2">{v.visit_number}</td>
+                    <td className="px-4 py-2">{v.visit_date ? new Date(v.visit_date).toLocaleDateString() : '—'}</td>
+                    <td className="px-4 py-2">{v.notes || '—'}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* Delivery Table */}
+      {tab === 'delivery' && (
+        <div className="overflow-x-auto mt-4">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Delivery Date</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Outcome</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Facility</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-100">
+              {patientDeliveries.length === 0 ? (
+                <tr><td colSpan={3} className="text-center text-gray-400 py-4">No delivery records available.</td></tr>
+              ) : (
+                patientDeliveries.map((d: any, i: number) => (
+                  <tr key={i}>
+                    <td className="px-4 py-2">{d.delivery_date ? new Date(d.delivery_date).toLocaleDateString() : '—'}</td>
+                    <td className="px-4 py-2">{d.outcome || '—'}</td>
+                    <td className="px-4 py-2">{d.facility_name || '—'}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+// Usage: <PatientVisitsTabs patientId={selectedPatientId} />
+
 export function PatientProfiles({ onSelectPatient, setFilteredPatientCount }: PatientProfilesProps) {
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedPatient, setSelectedPatient] = useState<(typeof patients)[0] | null>(null)
+  const [selectedPatient, setSelectedPatient] = useState<any | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isFilterOpen, setIsFilterOpen] = useState(false)
   const [sortBy, setSortBy] = useState("name")
   const [sortOrder, setSortOrder] = useState("asc")
   const isMobile = useIsMobile()
-  const [patients, setPatients] = useState([
-    {
-      id: "1",
-      clientNumber: "001",
-      clientName: "Marie Kamara",
-      name: "Marie Kamara",
-      gender: "female",
-      birthDate: "1990-02-15",
-      age: calculateAge("1990-02-15"),
-      phoneNumber: "1234567890",
-      phone: "1234567890",
-      email: "marie.kamara@example.com",
-      address: "123 Main St",
-      emergencyContact: "Jane Doe",
-      emergencyPhone: "555-1234",
-      riskLevel: "Medium",
-      status: "Active",
-      weeks: 36,
-      trimester: getTrimester(36),
-      dueDate: "2024-02-15",
-      visitCount: 6,
-      totalAppointments: defaultAppointments,
-      lastVisit: todayStr,
-      nextAppointment: todayStr,
-      nextAppointmentLabel: "38–40 weeks",
-      bloodType: "O+"
-    },
-    {
-      id: "2",
-      clientNumber: "002",
-      clientName: "Emmanuella Turay",
-      name: "Emmanuella Turay",
-      gender: "female",
-      birthDate: "1992-03-20",
-      age: calculateAge("1992-03-20"),
-      phoneNumber: "2345678901",
-      phone: "2345678901",
-      email: "emmanuella.turay@example.com",
-      address: "456 Elm St",
-      emergencyContact: "John Doe",
-      emergencyPhone: "555-2345",
-      riskLevel: "Low",
-      status: "Active",
-      weeks: 24,
-      trimester: getTrimester(24),
-      dueDate: "2024-03-20",
-      visitCount: 4,
-      totalAppointments: defaultAppointments,
-      lastVisit: todayStr,
-      nextAppointment: todayStr,
-      nextAppointmentLabel: "26 weeks",
-      bloodType: "A+"
-    },
-    {
-      id: "3",
-      clientNumber: "003",
-      clientName: "Sarah Conteh",
-      name: "Sarah Conteh",
-      gender: "female",
-      birthDate: "1995-04-10",
-      age: calculateAge("1995-04-10"),
-      phoneNumber: "3456789012",
-      phone: "3456789012",
-      email: "sarah.conteh@example.com",
-      address: "789 Oak St",
-      emergencyContact: "Mary Smith",
-      emergencyPhone: "555-3456",
-      riskLevel: "Low",
-      status: "Active",
-      weeks: 12,
-      trimester: getTrimester(12),
-      dueDate: "2024-04-10",
-      visitCount: 2,
-      totalAppointments: defaultAppointments,
-      lastVisit: todayStr,
-      nextAppointment: todayStr,
-      nextAppointmentLabel: "13–16 weeks",
-      bloodType: "B+"
-    },
-    {
-      id: "4",
-      clientNumber: "004",
-      clientName: "Clara Deen",
-      name: "Clara Deen",
-      gender: "female",
-      birthDate: "1998-04-25",
-      age: calculateAge("1998-04-25"),
-      phoneNumber: "4567890123",
-      phone: "4567890123",
-      email: "clara.deen@example.com",
-      address: "321 Pine St",
-      emergencyContact: "Paul Jones",
-      emergencyPhone: "555-4567",
-      riskLevel: "Low",
-      status: "Active",
-      weeks: 8,
-      trimester: getTrimester(8),
-      dueDate: "2024-04-25",
-      visitCount: 1,
-      totalAppointments: defaultAppointments,
-      lastVisit: todayStr,
-      nextAppointment: todayStr,
-      nextAppointmentLabel: "13–16 weeks",
-      bloodType: "AB+"
-    }
-  ])
-  const [loading, setLoading] = useState(false)
+  const [patients, setPatients] = useState<any[]>([])
+  const [loading, setLoading] = useState(true)
   const router = useRouter()
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [newPatient, setNewPatient] = useState({
@@ -278,7 +408,33 @@ export function PatientProfiles({ onSelectPatient, setFilteredPatientCount }: Pa
     { value: "gt", label: "Greater than" },
   ]
 
-  // Remove useEffect that fetches from Firestore
+  useEffect(() => {
+    async function fetchPatients() {
+      setLoading(true);
+      try {
+        const res = await fetch(getApiUrl('/api/patient'));
+        const data = await res.json();
+        console.log('Patients API response:', data);
+        let patients = [];
+        if (Array.isArray(data)) {
+          patients = data.map(mapApiPatientToFrontend);
+        } else if (data.entry && Array.isArray(data.entry)) {
+          patients = data.entry.map((entry: any) => mapApiPatientToFrontend(entry.resource));
+        } else {
+          console.error('Unexpected patient data format:', data);
+          patients = [];
+        }
+        setPatients(patients);
+        setFilteredPatientCount && setFilteredPatientCount(patients.length);
+      } catch (err) {
+        console.error('Error fetching patients:', err);
+        setPatients([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPatients();
+  }, [setFilteredPatientCount]);
 
   // Calculate statistics with current filters
   const filteredPatients = useMemo(() => {
@@ -449,7 +605,7 @@ export function PatientProfiles({ onSelectPatient, setFilteredPatientCount }: Pa
     }
   }
 
-  const handleRowClick = (patient: (typeof patients)[0]) => {
+  const handleRowClick = (patient: any) => {
     setSelectedPatient(patient)
     setIsModalOpen(true)
   }
@@ -470,7 +626,7 @@ export function PatientProfiles({ onSelectPatient, setFilteredPatientCount }: Pa
   }
 
   // Mobile Card View Component
-  const MobilePatientCard = ({ patient }: { patient: (typeof patients)[0] }) => (
+  const MobilePatientCard = ({ patient }: { patient: any }) => (
     <Card className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleRowClick(patient)}>
       <CardContent className="p-4">
         <div className="flex items-start space-x-3">
@@ -603,6 +759,10 @@ export function PatientProfiles({ onSelectPatient, setFilteredPatientCount }: Pa
     } finally {
       setAdding(false)
     }
+  }
+
+  if (loading) {
+    return <div className="min-h-[400px] flex items-center justify-center">Loading patients...</div>;
   }
 
   return (
@@ -1304,4 +1464,12 @@ export function PatientProfiles({ onSelectPatient, setFilteredPatientCount }: Pa
       </Dialog>
     </div>
   )
+}
+
+// Helper to prettify keys for display
+function prettifyKey(key: string): string {
+  return key
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, l => l.toUpperCase())
+    .replace('Id', 'ID');
 }

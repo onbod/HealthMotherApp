@@ -1,5 +1,6 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
 
 class Video {
   final String id;
@@ -48,12 +49,15 @@ class YouTubeService {
         throw Exception('No videos found for the search query.');
       }
       // Only include items with a videoId
-      final filtered = (data['items'] as List)
-          .where((item) =>
-              item['id'] != null &&
-              item['id']['kind'] == 'youtube#video' &&
-              item['id']['videoId'] != null)
-          .toList();
+      final filtered =
+          (data['items'] as List)
+              .where(
+                (item) =>
+                    item['id'] != null &&
+                    item['id']['kind'] == 'youtube#video' &&
+                    item['id']['videoId'] != null,
+              )
+              .toList();
       if (filtered.isEmpty) {
         throw Exception('No valid videos found in the API response.');
       }

@@ -54,23 +54,27 @@ class _BabyProgressCardState extends State<BabyProgressCard>
     return Consumer<UserSessionProvider>(
       builder: (context, userSession, child) {
         final latestVisit = userSession.getLatestVisitNumber() ?? 1;
-        final presentPregnancy = userSession.getVisitPresentPregnancy(
-          latestVisit,
-        );
         final bool babyBorn = userSession.hasDelivered();
 
-        // Get current week from gestational age
+        // Determine current gestational week from schema
         int currentWeek = 1;
-        if (presentPregnancy != null) {
-          final gestationAge = presentPregnancy['gestationalAge'];
-          if (gestationAge != null) {
-            try {
-              currentWeek =
-                  gestationAge is num
-                      ? gestationAge.toInt()
-                      : int.parse(gestationAge.toString());
-            } catch (e) {
-              print('Error parsing gestational age: $e');
+        final gaFromVisits = userSession.getLatestGestationalAge();
+        if (gaFromVisits != null) {
+          currentWeek = gaFromVisits;
+        } else {
+          final preg = userSession.getCurrentPregnancy();
+          if (preg != null && preg['current_gestation_weeks'] != null) {
+            final cg = preg['current_gestation_weeks'];
+            if (cg is int)
+              currentWeek = cg;
+            else if (cg is String) {
+              currentWeek = int.tryParse(cg) ?? 1;
+            }
+          } else {
+            final lmp = userSession.getLmp();
+            if (lmp != null) {
+              final diffDays = DateTime.now().difference(lmp).inDays;
+              currentWeek = (diffDays / 7).floor().clamp(1, 40);
             }
           }
         }
@@ -125,8 +129,7 @@ class _BabyProgressCardState extends State<BabyProgressCard>
         print('=== END BABY PROGRESS DEBUG INFO ===\n');
 
         // Calculate expected due date (EDD)
-        int gestationalAgeWeeks =
-            userSession.getLatestGestationalAge() ?? currentWeek;
+        int gestationalAgeWeeks = currentWeek;
         final now = DateTime.now();
         final daysToAdd = (40 - gestationalAgeWeeks) * 7;
         final expectedDueDate = now.add(Duration(days: daysToAdd));
