@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 import '../providers/user_session_provider.dart';
 
 class NutritionTipsScreen extends StatefulWidget {
-  const NutritionTipsScreen({Key? key}) : super(key: key);
+  const NutritionTipsScreen({super.key});
 
   @override
   State<NutritionTipsScreen> createState() => _NutritionTipsScreenState();
@@ -26,10 +26,12 @@ class _NutritionTipsScreenState extends State<NutritionTipsScreen> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final userSession =
-        Provider.of<UserSessionProvider>(context, listen: false);
+    final userSession = Provider.of<UserSessionProvider>(
+      context,
+      listen: false,
+    );
     final week = userSession.calculateCurrentWeekFromLatestANC();
-    if (week != null && week != presentWeek) {
+    if (week != presentWeek) {
       setState(() {
         presentWeek = week;
       });
@@ -39,48 +41,60 @@ class _NutritionTipsScreenState extends State<NutritionTipsScreen> {
   Future<void> fetchNutritionTips() async {
     final snapshot =
         await FirebaseFirestore.instance.collection('nutrition-tips').get();
-    print('Fetched nutrition tips: \n' +
-        snapshot.docs.map((d) => d.data().toString()).join("\n"));
+    print(
+      'Fetched nutrition tips: \n${snapshot.docs.map((d) => d.data().toString()).join("\n")}',
+    );
     setState(() {
-      nutritionTips = snapshot.docs.map((doc) {
-        final data = doc.data();
-        return NutritionTip(
-          title: data['title'] ?? '',
-          description: data['description'] ?? data['content'] ?? '',
-          category: data['category'] ?? '',
-          categoryType: data['categoryType'] ?? '',
-          icon: Icons.spa, // Default icon, or map if you store icon info
-          color: Colors.green, // Default color, or map if you store color info
-          details: data['details'] ?? data['content'] ?? '',
-          weeks: data['weeks'] ?? '',
-        );
-      }).toList();
+      nutritionTips =
+          snapshot.docs.map((doc) {
+            final data = doc.data();
+            return NutritionTip(
+              title: data['title'] ?? '',
+              description: data['description'] ?? data['content'] ?? '',
+              category: data['category'] ?? '',
+              categoryType: data['categoryType'] ?? '',
+              icon: Icons.spa, // Default icon, or map if you store icon info
+              color:
+                  Colors.green, // Default color, or map if you store color info
+              details: data['details'] ?? data['content'] ?? '',
+              weeks: data['weeks'] ?? '',
+            );
+          }).toList();
     });
   }
 
   List<NutritionTip> getTipsForCategory(String categoryType, int presentWeek) {
-    final tips = nutritionTips
-        .where((tip) =>
-            (tip.categoryType ?? '').trim().toLowerCase() ==
-                categoryType.trim().toLowerCase() &&
-            tip.weeks != null &&
-            int.tryParse(tip.weeks.toString()) != null)
-        .toList();
-    tips.sort((a, b) =>
-        int.parse(b.weeks.toString()).compareTo(int.parse(a.weeks.toString())));
+    final tips =
+        nutritionTips
+            .where(
+              (tip) =>
+                  (tip.categoryType ?? '').trim().toLowerCase() ==
+                      categoryType.trim().toLowerCase() &&
+                  int.tryParse(tip.weeks.toString()) != null,
+            )
+            .toList();
+    tips.sort(
+      (a, b) => int.parse(
+        b.weeks.toString(),
+      ).compareTo(int.parse(a.weeks.toString())),
+    );
     NutritionTip? presentTip;
     try {
       presentTip = tips.firstWhere(
-          (tip) => int.tryParse(tip.weeks.toString()) == presentWeek);
+        (tip) => int.tryParse(tip.weeks.toString()) == presentWeek,
+      );
     } catch (_) {
       presentTip = null;
     }
-    final last4Tips = tips
-        .where((tip) =>
-            int.tryParse(tip.weeks.toString()) != presentWeek &&
-            int.tryParse(tip.weeks.toString())! < presentWeek)
-        .take(4)
-        .toList();
+    final last4Tips =
+        tips
+            .where(
+              (tip) =>
+                  int.tryParse(tip.weeks.toString()) != presentWeek &&
+                  int.tryParse(tip.weeks.toString())! < presentWeek,
+            )
+            .take(4)
+            .toList();
     final result = <NutritionTip>[];
     if (presentTip != null) result.add(presentTip);
     result.addAll(last4Tips);
@@ -118,9 +132,13 @@ class _NutritionTipsScreenState extends State<NutritionTipsScreen> {
           Expanded(
             child: ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: selectedCategory == 'All'
-                  ? nutritionTips.length
-                  : getTipsForCategory(selectedCategory, presentWeek).length,
+              itemCount:
+                  selectedCategory == 'All'
+                      ? nutritionTips.length
+                      : getTipsForCategory(
+                        selectedCategory,
+                        presentWeek,
+                      ).length,
               itemBuilder: (context, index) {
                 final List<NutritionTip> filteredTips =
                     selectedCategory == 'All'
@@ -191,11 +209,7 @@ class _NutritionTipsScreenState extends State<NutritionTipsScreen> {
                           color: tip.color.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(
-                          tip.icon,
-                          color: tip.color,
-                          size: 24,
-                        ),
+                        child: Icon(tip.icon, color: tip.color, size: 24),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
@@ -275,82 +289,78 @@ class _NutritionTipsScreenState extends State<NutritionTipsScreen> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: tip.color.withOpacity(0.1),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Row(
-                children: [
-                  Icon(tip.icon, color: tip.color, size: 28),
-                  const SizedBox(width: 12),
-                  Expanded(
+      builder:
+          (context) => Container(
+            height: MediaQuery.of(context).size.height * 0.7,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: tip.color.withOpacity(0.1),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(tip.icon, color: tip.color, size: 28),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              tip.title,
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              tip.category,
+                              style: TextStyle(
+                                fontSize: 16,
+                                color: tip.color,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          tip.title,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          tip.description,
+                          style: const TextStyle(fontSize: 16, height: 1.5),
                         ),
+                        const SizedBox(height: 24),
                         Text(
-                          tip.category,
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: tip.color,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          tip.details,
+                          style: const TextStyle(fontSize: 15, height: 1.6),
                         ),
                       ],
                     ),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      tip.description,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Text(
-                      tip.details,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        height: 1.6,
-                      ),
-                    ),
-                  ],
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 }

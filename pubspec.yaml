@@ -48,6 +48,7 @@ dependencies:
   android_alarm_manager_plus: ^4.0.7
   permission_handler: ^12.0.0+1
   pin_code_fields: ^8.0.1
+  image_picker: ^1.0.7
   flutter_secure_storage: ^9.0.0
   youtube_explode_dart: ^2.4.2
   youtube_player_flutter: ^9.1.1
@@ -84,9 +85,10 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-        - assets/icon/appicon.png
+        - assets/icon/new_appicon.png
         - assets/icon/new_Icon.png
-        - assets/icon/icon_dark.png
+        - assets/icon/logo_center.png
+        - assets/icon/logo_bottom.png
         - assets/onboarding/pregnant.png
         - assets/onboarding/pregnantphone2.jpg
         - assets/onboarding/afterpregnancy.jpg
@@ -116,13 +118,20 @@ flutter:
   # the material Icons class.
   uses-material-design: true
 
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon/new_appicon.png"
+  min_sdk_android: 21 # android min sdk min:16, default 21
+  remove_alpha_ios: true # iOS will automatically add rounded corners, so we remove alpha for better rendering
+
 flutter_native_splash:
-  color: "#ffffff"
-  color_dark: "#272727"
-  image: assets/icon/appicon.png
-  image_dark: assets/icon/icon_dark.png
+  color: "#000000"
+  color_dark: "#000000"
+  image: assets/icon/new_appicon.png
+  image_dark: assets/icon/new_appicon.png
   icon_background_color: "transparent"
-  android_gravity: fill
-  ios_content_mode: scaleToFill
+  android_gravity: center
+  ios_content_mode: center
   web: false
 

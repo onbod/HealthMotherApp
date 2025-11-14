@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, Suspense } from "react"
 import { useSearchParams, useRouter, usePathname } from "next/navigation"
 import { PatientProfiles } from "../components/patient-profiles"
 import { AppointmentCalendar } from "../components/appointment-calendar"
@@ -13,9 +13,12 @@ import { MedicalRecords } from "../components/medical-records"
 import { TrimesterDashboards } from "../components/trimester-dashboards"
 import { HealthEducation } from "../components/health-education"
 import { Messages } from "../components/messages"
-import { useLocalAuth } from "../hooks/use-auth";
+import { useLocalAuth } from "../hooks/use-auth"
+import PatientsPage from "../components/patients"
+import ReferralPage from "../components/referral"
+import { ClinicianDashboard } from "../components/clinician-dashboard"
 
-export default function Dashboard() {
+function DashboardContent() {
   const searchParams = useSearchParams()
   const [activeView, setActiveView] = useState("dashboard")
   const [selectedPatient, setSelectedPatient] = useState<string | null>(null)
@@ -49,14 +52,11 @@ export default function Dashboard() {
     // Route for clinicians
     if (role === 'clinician') {
       if (pathname === '/patients') {
-        const PatientsPage = require('../components/patients').default;
         return <PatientsPage />;
       }
       if (pathname === '/referral') {
-        const ReferralPage = require('../components/referral').default;
         return <ReferralPage />;
       }
-      const ClinicianDashboard = require('../components/clinician-dashboard').ClinicianDashboard;
       return <ClinicianDashboard />;
     }
 
@@ -88,4 +88,12 @@ export default function Dashboard() {
   if (!role) return null; // Let layout show the login page
 
   return renderContent();
+}
+
+export default function Dashboard() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Loading...</div>}>
+      <DashboardContent />
+    </Suspense>
+  );
 }

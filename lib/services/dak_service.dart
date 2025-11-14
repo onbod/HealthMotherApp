@@ -2,8 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../core/config.dart';
 
-/// DAK (Digital Adaptation Kit) Service for Mobile App
-/// Provides DAK-compliant decision support and scheduling
+// DAK Service for decision support and scheduling
 class DAKService {
   static String get _baseUrl => AppConfig.getBackendUrl();
 

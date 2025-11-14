@@ -8,11 +8,7 @@ class HealthVideosSection extends StatefulWidget {
   final int? week;
   final String? trimester;
 
-  const HealthVideosSection({
-    Key? key,
-    this.week,
-    this.trimester,
-  }) : super(key: key);
+  const HealthVideosSection({super.key, this.week, this.trimester});
 
   @override
   State<HealthVideosSection> createState() => _HealthVideosSectionState();
@@ -75,8 +71,8 @@ class _HealthVideosSectionState extends State<HealthVideosSection> {
                 widget.week != null
                     ? 'Week ${widget.week} Videos'
                     : widget.trimester != null
-                        ? '${widget.trimester} Trimester Videos'
-                        : 'Pregnancy Videos',
+                    ? '${widget.trimester} Trimester Videos'
+                    : 'Pregnancy Videos',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
@@ -85,12 +81,7 @@ class _HealthVideosSectionState extends State<HealthVideosSection> {
               ),
               TextButton(
                 onPressed: _loadVideos,
-                child: Text(
-                  'Refresh',
-                  style: TextStyle(
-                    color: primaryColor,
-                  ),
-                ),
+                child: Text('Refresh', style: TextStyle(color: primaryColor)),
               ),
             ],
           ),
@@ -100,10 +91,7 @@ class _HealthVideosSectionState extends State<HealthVideosSection> {
           const Center(child: CircularProgressIndicator())
         else if (_error != null)
           Center(
-            child: Text(
-              _error!,
-              style: const TextStyle(color: Colors.red),
-            ),
+            child: Text(_error!, style: const TextStyle(color: Colors.red)),
           )
         else
           SizedBox(
@@ -128,10 +116,11 @@ class _HealthVideosSectionState extends State<HealthVideosSection> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => VideoPlayerScreen(
-                              videoId: video.id,
-                              title: video.title,
-                            ),
+                            builder:
+                                (context) => VideoPlayerScreen(
+                                  videoId: video.id,
+                                  title: video.title,
+                                ),
                           ),
                         );
                       },
@@ -143,7 +132,8 @@ class _HealthVideosSectionState extends State<HealthVideosSection> {
                             children: [
                               ClipRRect(
                                 borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(16)),
+                                  top: Radius.circular(16),
+                                ),
                                 child: Image.network(
                                   video.thumbnailUrl,
                                   height: 160,

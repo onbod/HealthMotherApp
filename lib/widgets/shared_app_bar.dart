@@ -5,7 +5,7 @@ import '../providers/user_session_provider.dart';
 import '../features/notifications_screen.dart'; // Import the notifications screen
 import '../features/settings_screen.dart'; // Import the settings screen
 import '../services/notification_service.dart';
-import '../services/firestore_notification_service.dart';
+import '../services/backend_notification_service.dart';
 
 class SharedAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String visitNumber;
@@ -19,7 +19,7 @@ class SharedAppBar extends StatefulWidget implements PreferredSizeWidget {
   final String? screenTitle;
 
   const SharedAppBar({
-    Key? key,
+    super.key,
     required this.visitNumber,
     this.onNotificationPressed,
     this.leadingWidget,
@@ -29,7 +29,7 @@ class SharedAppBar extends StatefulWidget implements PreferredSizeWidget {
     this.isSimpleLayout = false,
     this.isHomeScreen = false,
     this.screenTitle,
-  }) : super(key: key);
+  });
 
   @override
   _SharedAppBarState createState() => _SharedAppBarState();
@@ -41,8 +41,8 @@ class SharedAppBar extends StatefulWidget implements PreferredSizeWidget {
 
 class _SharedAppBarState extends State<SharedAppBar> {
   final NotificationService _notificationService = NotificationService();
-  final FirestoreNotificationService _firestoreNotificationService =
-      FirestoreNotificationService();
+  final BackendNotificationService _backendNotificationService =
+      BackendNotificationService();
   int _unreadCount = 0;
 
   @override
@@ -58,51 +58,72 @@ class _SharedAppBarState extends State<SharedAppBar> {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _fetchUnreadCount();
+    // Use post-frame callback to ensure Provider is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fetchUnreadCount();
+      }
+    });
   }
 
   @override
   void didUpdateWidget(SharedAppBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _fetchUnreadCount();
+    // Use post-frame callback to ensure Provider is ready
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _fetchUnreadCount();
+      }
+    });
   }
 
   Future<void> _fetchUnreadCount() async {
     if (!mounted) return;
-    final userSession = Provider.of<UserSessionProvider>(
-      context,
-      listen: false,
-    );
-    // Prefer schema's patient.identifier when clientNumber is not available
-    final clientNumber =
-        userSession.clientNumber ?? userSession.patient?['identifier'];
+    try {
+      // Add a small delay to ensure Provider context is available
+      await Future.delayed(const Duration(milliseconds: 50));
+      if (!mounted) return;
+      
+      final userSession = Provider.of<UserSessionProvider>(
+        context,
+        listen: false,
+      );
+      // Prefer schema's patient.identifier when clientNumber is not available
+      final clientNumber =
+          userSession.clientNumber ?? userSession.patient?['identifier'];
 
-    if (clientNumber != null && clientNumber.isNotEmpty) {
-      try {
-        // Get unread count from both services
-        final reportCount = await _notificationService
-            .getUnreadNotificationCount(clientNumber);
-        final firestoreCount = await _firestoreNotificationService
-            .getUnreadCount(
-              context,
-            ); // Count unread notifications from notifications collection
+      if (clientNumber != null && clientNumber.isNotEmpty) {
+        try {
+          // Get unread count from both services
+          final reportCount = await _notificationService
+              .getUnreadNotificationCount(clientNumber);
+          // Get unread count from backend notifications
+          final backendCount = await _backendNotificationService.getUnreadCount();
 
-        final totalCount = reportCount + firestoreCount;
+          final totalCount = reportCount + backendCount;
 
-        if (mounted) {
-          setState(() {
-            _unreadCount = totalCount;
-          });
+          if (mounted) {
+            setState(() {
+              _unreadCount = totalCount;
+            });
+          }
+        } catch (e) {
+          print('Error fetching unread count for app bar: $e');
+          if (mounted) {
+            setState(() {
+              _unreadCount = 0;
+            });
+          }
         }
-      } catch (e) {
-        print('Error fetching unread count for app bar: $e');
+      } else {
         if (mounted) {
           setState(() {
             _unreadCount = 0;
           });
         }
       }
-    } else {
+    } catch (e) {
+      print('Error accessing Provider in SharedAppBar: $e');
       if (mounted) {
         setState(() {
           _unreadCount = 0;
@@ -111,30 +132,53 @@ class _SharedAppBarState extends State<SharedAppBar> {
     }
   }
 
-  String _getInitials(String name) {
-    if (name.isEmpty) return '';
-    final nameParts = name.split(' ');
-    if (nameParts.length >= 2) {
-      return '${nameParts[0][0]}${nameParts[1][0]}';
+  String _getInitials(UserSessionProvider userSession) {
+    // First, try to get first_name and last_name directly from patient data
+    final firstName = userSession.patient?['first_name'];
+    final lastName = userSession.patient?['last_name'];
+    
+    if (firstName != null && lastName != null && 
+        firstName.toString().isNotEmpty && lastName.toString().isNotEmpty) {
+      return '${firstName.toString()[0].toUpperCase()}${lastName.toString()[0].toUpperCase()}';
     }
-    return name[0];
+    
+    // Fallback to parsing getClientName()
+    final clientName = userSession.getClientName();
+    if (clientName != null && clientName.isNotEmpty) {
+      final nameParts = clientName.trim().split(' ');
+      if (nameParts.length >= 2) {
+        return '${nameParts[0][0].toUpperCase()}${nameParts[1][0].toUpperCase()}';
+      }
+      if (nameParts.isNotEmpty && nameParts[0].isNotEmpty) {
+        return nameParts[0][0].toUpperCase();
+      }
+    }
+    
+    return 'U';
   }
 
   @override
   Widget build(BuildContext context) {
     final userSession = Provider.of<UserSessionProvider>(
       context,
-      listen: false,
+      listen: true, // Changed to true to rebuild when user session data changes
     );
-    final clientName = userSession.getClientName() ?? 'User';
-    final initials = _getInitials(clientName);
+    // Get first name for dropdown display
+    final firstName = userSession.patient?['first_name']?.toString().trim();
+    final displayName = firstName != null && firstName.isNotEmpty
+        ? firstName
+        : (userSession.getClientName() ?? 'User');
+    final initials = _getInitials(userSession);
 
     return SafeArea(
       child: Container(
         constraints: const BoxConstraints(
           maxHeight: 80, // Adjust as needed for your design
         ),
-        color: widget.isSimpleLayout ? const Color(0xFF7C4DFF) : Colors.white,
+        color: widget.isSimpleLayout
+            ? const Color(0xFF7C4DFF)
+            : Theme.of(context).appBarTheme.backgroundColor ??
+                Theme.of(context).scaffoldBackgroundColor,
         padding: EdgeInsets.only(
           top: widget.isSimpleLayout ? 24.0 : 8.0, // Reduced padding
           left: 16,
@@ -220,10 +264,11 @@ class _SharedAppBarState extends State<SharedAppBar> {
                     child: Center(
                       child: Text(
                         widget.screenTitle!,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black,
+                          color: Theme.of(context).textTheme.titleLarge?.color ??
+                              Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
@@ -241,9 +286,9 @@ class _SharedAppBarState extends State<SharedAppBar> {
                         child: Stack(
                           children: [
                             IconButton(
-                              icon: const Icon(
+                              icon: Icon(
                                 Icons.notifications_none,
-                                color: Colors.black,
+                                color: Theme.of(context).iconTheme.color ?? Colors.black,
                                 size: 24,
                               ),
                               onPressed: () async {
@@ -289,7 +334,7 @@ class _SharedAppBarState extends State<SharedAppBar> {
                       const SizedBox(width: 8),
                       GestureDetector(
                         onTap:
-                            () => _showUserMenu(context, clientName, initials),
+                            () => _showUserMenu(context, displayName, initials),
                         child: Padding(
                           padding: const EdgeInsets.only(top: 8.0),
                           child: Container(
@@ -334,11 +379,18 @@ class _SharedAppBarState extends State<SharedAppBar> {
     );
   }
 
-  void _showUserMenu(BuildContext context, String clientName, String initials) {
+  void _showUserMenu(BuildContext context, String displayName, String initials) {
     final userSession = Provider.of<UserSessionProvider>(
       context,
       listen: false,
     );
+    // Recalculate initials in case userSession data changed
+    final currentInitials = _getInitials(userSession);
+    // Get first name for display in dropdown menu header
+    final firstName = userSession.patient?['first_name']?.toString().trim();
+    final menuDisplayName = firstName != null && firstName.isNotEmpty
+        ? firstName
+        : (userSession.getClientName() ?? 'User');
 
     showMenu<String>(
       context: context,
@@ -351,7 +403,7 @@ class _SharedAppBarState extends State<SharedAppBar> {
               CircleAvatar(
                 backgroundColor: const Color(0xFF7C4DFF),
                 child: Text(
-                  initials,
+                  currentInitials,
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
@@ -360,7 +412,7 @@ class _SharedAppBarState extends State<SharedAppBar> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    clientName,
+                    menuDisplayName,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                   Text(

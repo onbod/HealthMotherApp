@@ -148,66 +148,65 @@ export function DashboardOverview() {
       </div>
 
       {/* Key Metrics Cards */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-gradient-to-br from-green-600 to-green-700 text-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Total Patients</CardTitle>
-            <Users className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground-white" />
+      <div className="grid gap-3 sm:gap-4 md:gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-gradient-to-br from-green-600 to-green-700 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-white/90">Total Patients</CardTitle>
+            <Users className="h-4 w-4 sm:h-5 sm:w-5 text-white/80 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{totalPatients}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-black flex items-center">
-                <TrendingUp className="h-3 w-3 mr-1" />
-                {/* You can add a real trend here if available */}
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">{totalPatients}</div>
+            <p className="text-xs sm:text-sm text-white/80 mt-1">
+              <span className="flex items-center">
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 +12% from last month
               </span>
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">This Week's Appointments</CardTitle>
-            <Calendar className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground-white" />
+        <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-white/90">This Week's Appointments</CardTitle>
+            <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-white/80 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{totalAppointmentsThisWeek}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-black flex items-center">
-                <TrendingUp className="h-3 w-3 mr-1" />
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">{totalAppointmentsThisWeek}</div>
+            <p className="text-xs sm:text-sm text-white/80 mt-1">
+              <span className="flex items-center">
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 +8% from last week
               </span>
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-red-600 to-red-700 text-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">High Risk Patients</CardTitle>
-            <AlertTriangle className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground-white" />
+        <Card className="bg-gradient-to-br from-red-600 to-red-700 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-white/90">High Risk Patients</CardTitle>
+            <AlertTriangle className="h-4 w-4 sm:h-5 sm:w-5 text-white/80 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{highRiskPatients}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-black flex items-center">
-                <TrendingDown className="h-3 w-3 mr-1" />
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">{highRiskPatients}</div>
+            <p className="text-xs sm:text-sm text-white/80 mt-1">
+              <span className="flex items-center">
+                <TrendingDown className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 -2 from last month
               </span>
             </p>
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-yellow-600 to-yellow-700 text-white">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-xs sm:text-sm font-medium">Births This Month</CardTitle>
-            <Baby className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground-white" />
+        <Card className="bg-gradient-to-br from-yellow-600 to-yellow-700 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 px-4 sm:px-6 pt-4 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-medium text-white/90">Births This Month</CardTitle>
+            <Baby className="h-4 w-4 sm:h-5 sm:w-5 text-white/80 shrink-0" />
           </CardHeader>
-          <CardContent>
-            <div className="text-xl sm:text-2xl font-bold">{birthsThisMonth}</div>
-            <p className="text-xs text-muted-foreground">
-              <span className="text-black flex items-center">
-                <TrendingUp className="h-3 w-3 mr-1" />
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-white">{birthsThisMonth}</div>
+            <p className="text-xs sm:text-sm text-white/80 mt-1">
+              <span className="flex items-center">
+                <TrendingUp className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                 0 from last month
               </span>
             </p>
@@ -216,16 +215,16 @@ export function DashboardOverview() {
       </div>
 
       {/* Charts Grid */}
-      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+      <div className="grid gap-4 sm:gap-5 md:gap-6 grid-cols-1 lg:grid-cols-2">
         {/* Patients by Trimester */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Patients by Trimester</CardTitle>
-            <CardDescription className="text-sm">
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
+            <CardTitle className="text-base sm:text-lg lg:text-xl">Patients by Trimester</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
               Current distribution of patients across pregnancy stages
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
             <ChartContainer
               config={{
                 count: {
@@ -233,7 +232,7 @@ export function DashboardOverview() {
                   color: "hsl(var(--chart-1))",
                 },
               }}
-              className={`${isMobile ? "h-[250px]" : "h-[300px]"} my-0`}
+              className={`${isMobile ? "h-[200px] sm:h-[250px]" : "h-[280px] lg:h-[320px]"} my-0`}
             >
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -257,12 +256,12 @@ export function DashboardOverview() {
         </Card>
 
         {/* Weekly Appointments */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Weekly Appointments</CardTitle>
-            <CardDescription className="text-sm">Appointments scheduled for this week</CardDescription>
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
+            <CardTitle className="text-base sm:text-lg lg:text-xl">Weekly Appointments</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Appointments scheduled for this week</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
             <ChartContainer
               config={{
                 appointments: {
@@ -270,7 +269,7 @@ export function DashboardOverview() {
                   color: "hsl(var(--chart-2))",
                 },
               }}
-              className={`${isMobile ? "h-[250px]" : "h-[300px]"}`}
+              className={`${isMobile ? "h-[200px] sm:h-[250px]" : "h-[280px] lg:h-[320px]"}`}
             >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={appointmentsThisWeekData}>
@@ -286,12 +285,12 @@ export function DashboardOverview() {
         </Card>
 
         {/* Risk Level Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Risk Level Distribution</CardTitle>
-            <CardDescription className="text-sm">Patient risk assessment overview</CardDescription>
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
+            <CardTitle className="text-base sm:text-lg lg:text-xl">Risk Level Distribution</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">Patient risk assessment overview</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
             <ChartContainer
               config={{
                 count: {
@@ -299,7 +298,7 @@ export function DashboardOverview() {
                   color: "hsl(var(--chart-3))",
                 },
               }}
-              className={`${isMobile ? "h-[250px]" : "h-[300px]"}`}
+              className={`${isMobile ? "h-[200px] sm:h-[250px]" : "h-[280px] lg:h-[320px]"}`}
             >
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={riskLevels} layout="horizontal">
@@ -319,12 +318,12 @@ export function DashboardOverview() {
         </Card>
 
         {/* Monthly Trends */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base sm:text-lg">Monthly Trends</CardTitle>
-            <CardDescription className="text-sm">New patients and births over the last 6 months</CardDescription>
+        <Card className="hover:shadow-md transition-shadow">
+          <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
+            <CardTitle className="text-base sm:text-lg lg:text-xl">Monthly Trends</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">New patients and births over the last 6 months</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
             <ChartContainer
               config={{
                 newPatients: {
@@ -336,7 +335,7 @@ export function DashboardOverview() {
                   color: "hsl(var(--chart-2))",
                 },
               }}
-              className={`${isMobile ? "h-[250px]" : "h-[300px]"}`}
+              className={`${isMobile ? "h-[200px] sm:h-[250px]" : "h-[280px] lg:h-[320px]"}`}
             >
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={monthlyTrends}>
@@ -367,20 +366,20 @@ export function DashboardOverview() {
       </div>
 
       {/* Upcoming Due Dates */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
-            <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+      <Card className="hover:shadow-md transition-shadow">
+        <CardHeader className="px-4 sm:px-6 pt-4 sm:pt-6">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg lg:text-xl">
+            <Clock className="h-4 w-4 sm:h-5 sm:w-5 shrink-0" />
             Upcoming Due Dates
           </CardTitle>
-          <CardDescription className="text-sm">Patients with due dates in the next 8 weeks</CardDescription>
+          <CardDescription className="text-xs sm:text-sm">Patients with due dates in the next 8 weeks</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
+        <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+          <div className="space-y-2 sm:space-y-3">
             {upcomingDueDates.map((patient, index) => (
               <div
                 key={index}
-                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 border rounded-lg space-y-2 sm:space-y-0"
+                className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border border-gray-200 rounded-lg space-y-2 sm:space-y-0 sm:space-x-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center space-x-3">
                   <div className="flex flex-col">

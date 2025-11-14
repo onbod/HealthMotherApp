@@ -31,6 +31,16 @@ class UserSessionProvider with ChangeNotifier {
     if (response.statusCode != 200) {
       print('DEBUG: /user/session response status: ${response.statusCode}');
       print('DEBUG: /user/session response body: ${response.body}');
+      
+      // If token is invalid (401), clear it and fall back to local storage
+      if (response.statusCode == 401) {
+        print('DEBUG: Invalid token detected, clearing JWT and falling back to local storage');
+        await storage.delete(key: 'jwt');
+        // Try to restore from local storage instead
+        await restorePatientFromStorage();
+        return;
+      }
+      
       throw Exception('Failed to load user session: ${response.body}');
     }
     final data = jsonDecode(response.body);
@@ -91,22 +101,52 @@ class UserSessionProvider with ChangeNotifier {
 
   // --- Restore patient data from secure storage or shared preferences ---
   Future<void> restorePatientFromStorage() async {
-    String? patientJson;
-    if (kIsWeb) {
-      final prefs = await SharedPreferences.getInstance();
-      patientJson = prefs.getString('patient');
-    } else {
-      const storage = FlutterSecureStorage();
-      patientJson = await storage.read(key: 'patient');
-    }
-    if (patientJson != null) {
-      patient = Map<String, dynamic>.from(jsonDecode(patientJson));
-      notifyListeners();
+    try {
+      String? patientJson;
+      if (kIsWeb) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          patientJson = prefs.getString('patient');
+        } catch (e) {
+          print('DEBUG: Error reading from SharedPreferences: $e');
+          return;
+        }
+      } else {
+        try {
+          const storage = FlutterSecureStorage();
+          patientJson = await storage.read(key: 'patient');
+        } catch (e) {
+          print('DEBUG: Error reading from FlutterSecureStorage: $e');
+          return;
+        }
+      }
+      if (patientJson != null && patientJson.isNotEmpty) {
+        try {
+          final decoded = jsonDecode(patientJson);
+          if (decoded is Map) {
+            patient = Map<String, dynamic>.from(decoded);
+            notifyListeners();
+          }
+        } catch (e) {
+          print('DEBUG: Error decoding patient JSON: $e');
+          // Clear corrupted data
+          if (kIsWeb) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.remove('patient');
+          } else {
+            const storage = FlutterSecureStorage();
+            await storage.delete(key: 'patient');
+          }
+        }
+      }
+    } catch (e) {
+      print('DEBUG: Unexpected error in restorePatientFromStorage: $e');
+      // Don't throw - allow app to continue
     }
   }
 
   // --- Patient core info ---
-  String? get clientNumber => patient?['client_number'];
+  String? get clientNumber => patient?['client_number'] ?? patient?['identifier'] ?? patient?['phone'];
   String? get ninNumber => patient?['nin_number'];
   String? get phone => patient?['phone'];
   int? get age => patient?['age'];
@@ -368,7 +408,7 @@ class UserSessionProvider with ChangeNotifier {
   // --- Visit gestational age range (stub) ---
   String? getVisitGestationalAgeRange(int visitNumber) {
     final ga = getVisitGestationalAge(visitNumber);
-    return ga != null ? ga.toString() : null;
+    return ga?.toString();
   }
 
   // --- Visit flagged (stub) ---
@@ -445,18 +485,53 @@ class UserSessionProvider with ChangeNotifier {
 
   /// Try to restore session from backend if online, otherwise from local storage
   Future<void> restoreOrFetchSession() async {
+    print('SESSION: Starting restoreOrFetchSession...');
     try {
-      // Try to check internet connectivity
-      final result = await InternetAddress.lookup('example.com');
-      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
-        // Online: fetch from backend
-        await loadUserDataFromBackend();
-        return;
+      // Try to check internet connectivity with timeout
+      try {
+        print('SESSION: Checking internet connectivity...');
+        final result = await InternetAddress.lookup('example.com')
+            .timeout(const Duration(seconds: 3));
+        if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+          print('SESSION: Online - attempting backend fetch...');
+          // Online: fetch from backend
+          try {
+            await loadUserDataFromBackend();
+            print('SESSION: Backend fetch successful');
+            return;
+          } catch (e, stackTrace) {
+            // If backend fetch fails (e.g., invalid token), fall back to local storage
+            print('SESSION: Backend fetch failed, falling back to local storage: $e');
+            print('SESSION: Stack trace: $stackTrace');
+            try {
+              await restorePatientFromStorage();
+              print('SESSION: Local storage restore successful after backend failure');
+            } catch (storageError) {
+              print('SESSION: Failed to restore from local storage: $storageError');
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        // Network check failed, assume offline
+        print('SESSION: Network check failed, assuming offline: $e');
       }
-    } catch (_) {
-      // Offline: restore from local storage
-      await restorePatientFromStorage();
+    } catch (e, stackTrace) {
+      print('SESSION: Error in restoreOrFetchSession: $e');
+      print('SESSION: Stack trace: $stackTrace');
     }
+    
+    // Offline or error: restore from local storage
+    print('SESSION: Attempting local storage restore...');
+    try {
+      await restorePatientFromStorage();
+      print('SESSION: Local storage restore successful');
+    } catch (e, stackTrace) {
+      print('SESSION: Failed to restore from local storage: $e');
+      print('SESSION: Stack trace: $stackTrace');
+      // Don't throw - allow app to continue even without session data
+    }
+    print('SESSION: restoreOrFetchSession completed');
   }
 
   // For compatibility with widgets/screens
@@ -468,8 +543,15 @@ class UserSessionProvider with ChangeNotifier {
     try {
       await loadUserDataFromBackend();
       return true;
-    } catch (_) {
-      return false;
+    } catch (e) {
+      // If backend fails, try local storage
+      try {
+        await restorePatientFromStorage();
+        // Return true if we have local data, false otherwise
+        return patient != null;
+      } catch (_) {
+        return false;
+      }
     }
   }
 

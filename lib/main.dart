@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb, kReleaseMode, FlutterError, FlutterErrorDetails;
+import 'dart:ui' show PlatformDispatcher;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,21 +16,46 @@ import 'providers/notification_provider.dart';
 import 'providers/user_session_provider.dart';
 import 'firebase_options.dart';
 import 'package:healthymamaapp/services/notification_service.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:healthymamaapp/widgets/global_navigation.dart';
 import 'features/pin_setup_screen.dart';
 import 'features/pin_verification_screen.dart';
 import 'package:healthymamaapp/services/local_notification_manager.dart';
 import 'package:android_alarm_manager_plus/android_alarm_manager_plus.dart';
 import 'package:healthymamaapp/services/alarm_service.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:io' show Platform;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
+  // Add comprehensive error handling
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    // Log to console in release mode
+    if (kReleaseMode) {
+      print('FLUTTER ERROR: ${details.exception}');
+      print('STACK TRACE: ${details.stack}');
+    } else {
+      print('Flutter Error: ${details.exception}');
+      print('Stack trace: ${details.stack}');
+    }
+  };
+
+  // Platform errors
+  PlatformDispatcher.instance.onError = (error, stack) {
+    if (kReleaseMode) {
+      print('PLATFORM ERROR: $error');
+      print('PLATFORM STACK: $stack');
+    } else {
+      print('Platform Error: $error');
+      print('Stack trace: $stack');
+    }
+    return true;
+  };
+
   try {
     WidgetsFlutterBinding.ensureInitialized();
-    if (!kIsWeb) {
+    // Only initialize AndroidAlarmManager on Android, not iOS
+    if (!kIsWeb && Platform.isAndroid) {
       await AndroidAlarmManager.initialize();
     }
     print('Initializing Firebase...');
@@ -157,28 +184,62 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
 
   Future<void> _restoreWebPatientSession() async {
     if (kIsWeb) {
-      final userSessionProvider = Provider.of<UserSessionProvider>(
-        context,
-        listen: false,
-      );
-      await userSessionProvider.restorePatientFromStorage();
-      setState(() {
-        _webPatientRestored = true;
-      });
+      try {
+        // Wait for the first frame to ensure context is available
+        await Future.delayed(const Duration(milliseconds: 100));
+        if (!mounted) {
+          _webPatientRestored = true;
+          return;
+        }
+        final userSessionProvider = Provider.of<UserSessionProvider>(
+          context,
+          listen: false,
+        );
+        await userSessionProvider.restorePatientFromStorage();
+        if (mounted) {
+          setState(() {
+            _webPatientRestored = true;
+          });
+        }
+      } catch (e) {
+        print('Error restoring web patient session: $e');
+        if (mounted) {
+          setState(() {
+            _webPatientRestored = true;
+          });
+        }
+      }
     } else {
       _webPatientRestored = true;
     }
   }
 
   Future<void> _restoreSession() async {
-    final userSessionProvider = Provider.of<UserSessionProvider>(
-      context,
-      listen: false,
-    );
-    await userSessionProvider.restoreOrFetchSession();
-    setState(() {
-      _sessionRestored = true;
-    });
+    try {
+      // Wait for the first frame to ensure context is available
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (!mounted) {
+        _sessionRestored = true;
+        return;
+      }
+      final userSessionProvider = Provider.of<UserSessionProvider>(
+        context,
+        listen: false,
+      );
+      await userSessionProvider.restoreOrFetchSession();
+      if (mounted) {
+        setState(() {
+          _sessionRestored = true;
+        });
+      }
+    } catch (e) {
+      print('Error restoring session: $e');
+      if (mounted) {
+        setState(() {
+          _sessionRestored = true;
+        });
+      }
+    }
   }
 
   @override
@@ -228,10 +289,8 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
       listen: false,
     );
     try {
-      final phoneNumber = user.phoneNumber ?? user.email;
-      if (phoneNumber != null) {
-        await userSessionProvider.loadUserData(phoneNumber);
-      }
+      // Try to restore session from backend or local storage
+      await userSessionProvider.restoreOrFetchSession();
     } catch (e) {
       print('Error loading user session: $e');
     }

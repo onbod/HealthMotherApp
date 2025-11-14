@@ -2,7 +2,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/material.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest_all.dart';
 import 'notification_service.dart';
 
 class LocalNotificationManager {
@@ -98,8 +97,9 @@ class LocalNotificationManager {
     final now = DateTime.now();
     for (int week = currentWeek + 1; week <= maxWeek; week++) {
       // Schedule for the same weekday/time as today, for each coming week
-      final DateTime weekDate =
-          now.add(Duration(days: 7 * (week - currentWeek)));
+      final DateTime weekDate = now.add(
+        Duration(days: 7 * (week - currentWeek)),
+      );
       final DateTime scheduled = DateTime(
         weekDate.year,
         weekDate.month,

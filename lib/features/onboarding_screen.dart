@@ -4,7 +4,7 @@ import '../auth/main_login_screen.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
 
 class OnboardingScreen extends StatefulWidget {
-  const OnboardingScreen({Key? key}) : super(key: key);
+  const OnboardingScreen({super.key});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -24,13 +24,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    _completionAnimation = Tween<double>(
-      begin: 1.0,
-      end: 1.5,
-    ).animate(CurvedAnimation(
-      parent: _completionController,
-      curve: Curves.easeInOut,
-    ));
+    _completionAnimation = Tween<double>(begin: 1.0, end: 1.5).animate(
+      CurvedAnimation(parent: _completionController, curve: Curves.easeInOut),
+    );
   }
 
   @override
@@ -164,11 +160,11 @@ class OnboardingPage extends StatefulWidget {
   final String description;
 
   const OnboardingPage({
-    Key? key,
+    super.key,
     required this.image,
     required this.title,
     required this.description,
-  }) : super(key: key);
+  });
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();

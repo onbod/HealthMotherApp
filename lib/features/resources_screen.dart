@@ -8,7 +8,7 @@ import 'nutrition_tips_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class ResourcesScreen extends StatelessWidget {
-  const ResourcesScreen({Key? key}) : super(key: key);
+  const ResourcesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

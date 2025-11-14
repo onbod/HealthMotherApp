@@ -9,7 +9,7 @@ import 'add_medication_screen.dart';
 import '../models/medication.dart';
 
 class MedicationScreen extends StatefulWidget {
-  const MedicationScreen({Key? key}) : super(key: key);
+  const MedicationScreen({super.key});
 
   @override
   State<MedicationScreen> createState() => _MedicationScreenState();
@@ -133,33 +133,31 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                     ),
                                   ),
                                   const Divider(height: 16),
-                                  ...medsForContact
-                                      .map(
-                                        (med) => Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            vertical: 4.0,
+                                  ...medsForContact.map(
+                                    (med) => Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        vertical: 4.0,
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.circle,
+                                            size: 8,
+                                            color: primaryColor,
                                           ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.circle,
-                                                size: 8,
-                                                color: primaryColor,
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              med,
+                                              style: const TextStyle(
+                                                fontSize: 16,
                                               ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: Text(
-                                                  med,
-                                                  style: const TextStyle(
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
+                                            ),
                                           ),
-                                        ),
-                                      )
-                                      .toList(),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
@@ -373,7 +371,7 @@ class _MedicationScreenState extends State<MedicationScreen> {
                                                   medication.id,
                                                   val,
                                                 ),
-                                            activeColor: primaryColor,
+                                            activeThumbColor: primaryColor,
                                           ),
                                           const SizedBox(width: 8),
                                           Text(

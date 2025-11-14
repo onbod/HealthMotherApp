@@ -3,7 +3,7 @@ import '../widgets/shared_app_bar.dart';
 import '../widgets/global_navigation.dart';
 
 class CalendarScreen extends StatelessWidget {
-  const CalendarScreen({Key? key}) : super(key: key);
+  const CalendarScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

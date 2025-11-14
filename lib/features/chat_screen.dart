@@ -1,15 +1,14 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../widgets/shared_app_bar.dart';
 import '../widgets/global_navigation.dart';
 import '../providers/user_session_provider.dart';
-import '../core/config.dart';
+import '../services/chat_history_service.dart';
+import '../models/chat_message.dart';
 
 class ChatScreen extends StatefulWidget {
-  const ChatScreen({Key? key}) : super(key: key);
+  const ChatScreen({super.key});
 
   @override
   State<ChatScreen> createState() => _ChatScreenState();
@@ -18,80 +17,167 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final ChatHistoryService _chatService = ChatHistoryService();
   List<Map<String, dynamic>> _messages = [];
   bool _isLoading = false;
   bool _sending = false;
+  String? _currentChatId;
+  Timer? _pollingTimer;
 
   @override
   void initState() {
     super.initState();
-    _fetchMessages();
+    _startPolling();
   }
 
-  Future<String?> _getJwt() async {
-    final storage = FlutterSecureStorage();
-    return await storage.read(key: 'jwt');
-  }
-
-  Future<void> _fetchMessages() async {
-    setState(() {
-      _isLoading = true;
+  void _startPolling() {
+    _fetchMessages(); // Initial load
+    
+    // Start polling timer - check for new messages every 5 seconds
+    _pollingTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      
+      try {
+        final userSession = Provider.of<UserSessionProvider>(
+          context,
+          listen: false,
+        );
+        final chatId = userSession.clientNumber;
+        
+        if (chatId != null && chatId == _currentChatId) {
+          // Only poll if we're still on the same chat
+          _fetchMessages(silent: true); // Silent fetch (no loading indicator)
+        }
+      } catch (e) {
+        print('Error polling for messages: $e');
+      }
     });
-    final userSession = Provider.of<UserSessionProvider>(
-      context,
-      listen: false,
-    );
-    final chatId = userSession.clientNumber;
-    final jwt = await _getJwt();
-    if (chatId == null || jwt == null) return;
-    final response = await http.get(
-      Uri.parse(AppConfig.getApiUrl('/chat/$chatId/messages')),
-      headers: {'Authorization': 'Bearer $jwt'},
-    );
-    if (response.statusCode == 200) {
+  }
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+  }
+
+  Future<void> _fetchMessages({bool silent = false}) async {
+    if (!silent) {
       setState(() {
-        _messages = List<Map<String, dynamic>>.from(jsonDecode(response.body));
-        _isLoading = false;
+        _isLoading = true;
       });
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-    } else {
-      setState(() {
-        _isLoading = false;
-      });
-      ScaffoldMessenger.of(
+    }
+    
+    try {
+      final userSession = Provider.of<UserSessionProvider>(
         context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load messages')));
+        listen: false,
+      );
+      final chatId = userSession.clientNumber;
+      
+      if (chatId == null) {
+        if (!silent) {
+          setState(() {
+            _isLoading = false;
+          });
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Please log in to view messages')),
+            );
+          }
+        }
+        return;
+      }
+      
+      // Update current chat ID
+      _currentChatId = chatId;
+      
+      // Use ChatHistoryService which handles offline/online automatically
+      final messages = await _chatService.getMessagesForChat(chatId);
+      
+      // Check if we have new messages (compare count or last message ID)
+      final hasNewMessages = _messages.length != messages.length ||
+          (_messages.isNotEmpty && messages.isNotEmpty &&
+           (_messages.last['id']?.toString() != messages.last.id?.toString()));
+      
+      if (mounted) {
+        setState(() {
+          // Convert ChatMessage objects to maps, ensuring timestamp and status are included
+          _messages = messages.map((msg) {
+            final json = msg.toJson();
+            // Ensure timestamp field exists for UI compatibility
+            if (!json.containsKey('timestamp')) {
+              json['timestamp'] = msg.timestamp.toIso8601String();
+            }
+            // Ensure status field exists for UI compatibility
+            if (!json.containsKey('status')) {
+              json['status'] = msg.isRead ? 'read' : 'sent';
+            }
+            return json;
+          }).toList();
+          if (!silent) {
+            _isLoading = false;
+          }
+        });
+        
+        // Auto-scroll to bottom if new messages arrived
+        if (hasNewMessages) {
+          WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+        }
+      }
+    } catch (e) {
+      if (!silent) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error loading messages: ${e.toString()}'),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+      print('Error fetching messages: $e');
     }
   }
 
   Future<void> _sendMessage() async {
     final text = _messageController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty || _sending) return;
+    
     setState(() {
       _sending = true;
     });
-    final userSession = Provider.of<UserSessionProvider>(
-      context,
-      listen: false,
-    );
-    final chatId = userSession.clientNumber;
-    final senderId = userSession.clientNumber;
-    final receiverId = 'health_worker'; // or use actual health worker id
-    final jwt = await _getJwt();
-    if (chatId == null || senderId == null || jwt == null) return;
-    final response = await http.post(
-      Uri.parse(AppConfig.getApiUrl('/chat/$chatId/messages')),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $jwt',
-      },
-      body: jsonEncode({
-        'sender_id': senderId,
-        'receiver_id': receiverId,
-        'message': text,
-        'who_guideline': 'Respectful communication',
-        'dak_guideline': 'DAK ANC Decision Support',
-        'fhir_resource': {
+    
+    try {
+      final userSession = Provider.of<UserSessionProvider>(
+        context,
+        listen: false,
+      );
+      final chatId = userSession.clientNumber;
+      final senderId = userSession.clientNumber;
+      
+      if (chatId == null || senderId == null) {
+        setState(() {
+          _sending = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Please log in to send messages')),
+          );
+        }
+        return;
+      }
+      
+      // Create message object
+      final message = ChatMessage(
+        senderId: senderId,
+        receiverId: 'health_worker',
+        message: text,
+        fhirResource: {
           'resourceType': 'Communication',
           'status': 'completed',
           'category': {
@@ -105,19 +191,32 @@ class _ChatScreenState extends State<ChatScreen> {
           },
           'subject': {'reference': 'Patient/$senderId'},
         },
-      }),
-    );
-    setState(() {
-      _sending = false;
-    });
-    if (response.statusCode == 201) {
+      );
+      
+      // Use ChatHistoryService which handles offline/online automatically
+      await _chatService.addMessageToChat(chatId, message, text);
+      
+      setState(() {
+        _sending = false;
+      });
+      
       _messageController.clear();
-      await _fetchMessages();
-      _scrollToBottom();
-    } else {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to send message')));
+      // Refresh messages immediately to show the new message (silent to avoid loading indicator)
+      await _fetchMessages(silent: true);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    } catch (e) {
+      setState(() {
+        _sending = false;
+      });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error sending message: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+      print('Error sending message: $e');
     }
   }
 
@@ -133,6 +232,7 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   void dispose() {
+    _stopPolling();
     _messageController.dispose();
     _scrollController.dispose();
     super.dispose();
@@ -166,10 +266,10 @@ class _ChatScreenState extends State<ChatScreen> {
                                 listen: false,
                               ).clientNumber;
                           return _buildMessageBubble(
-                            text: msg['message'] ?? '',
-                            timestamp: msg['timestamp'],
+                            text: msg['message'] ?? msg['text'] ?? '',
+                            timestamp: msg['timestamp'] ?? msg['created_at'] ?? msg['last_updated'],
                             isCurrentUser: isCurrentUser,
-                            status: msg['status'] ?? 'sent',
+                            status: msg['status'] ?? (msg['is_read'] == true ? 'read' : 'sent'),
                           );
                         },
                       ),

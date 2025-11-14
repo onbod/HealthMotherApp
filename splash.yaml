@@ -1,9 +1,9 @@
 flutter_native_splash:
-  color: "#ffffff"
-  color_dark: "#272727"
+  color: "#000000"
+  color_dark: "#000000"
   image: assets/icon/new_appicon.png
   image_dark: assets/icon/new_appicon.png
   icon_background_color: "transparent"
-  android_gravity: fill
-  ios_content_mode: scaleToFill
+  android_gravity: center
+  ios_content_mode: center
   web: false

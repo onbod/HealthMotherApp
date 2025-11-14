@@ -58,25 +58,22 @@ HealthyMother now features **full PostgreSQL database support** for persistent, 
    yarn install
    ```
 
-3. **Configure your database:**
+3. **Configure environment variables:**
 
-   - Ensure PostgreSQL is running locally or accessible remotely.
-   - Create a database (e.g., `healthmother`).
-   - Copy `.env.example` to `.env` and fill in your PostgreSQL connection details:
+   Create `.env.local` file in the `Admin_Dashboard` directory:
 
-     ```env
-     DATABASE_URL=postgresql://user:password@localhost:5432/healthmother
-     ```
+   ```env
+   # For Railway backend (production)
+   NEXT_PUBLIC_API_URL=https://your-railway-backend.railway.app
+   
+   # For local backend development
+   # NEXT_PUBLIC_API_URL=http://localhost:3000
+   
+   # Optional: Direct database connection (if needed)
+   # DATABASE_URL=postgresql://user:password@localhost:5432/healthmother
+   ```
 
-   - Run database migrations (if provided):
-
-     ```bash
-     pnpm db:migrate
-     # or
-     npm run db:migrate
-     # or
-     yarn db:migrate
-     ```
+   **Note**: The Admin Dashboard primarily connects to the Railway backend API. Direct database connection is optional and only needed for specific features.
 
 4. **Start the development server:**
 
@@ -92,7 +89,7 @@ HealthyMother now features **full PostgreSQL database support** for persistent, 
 
    Visit [http://localhost:3000](http://localhost:3000)
 
-   **Note**: The Admin Dashboard connects to the Railway backend at `https://health-fhir-backend-production-6ae1.up.railway.app`
+   **Note**: The Admin Dashboard connects to your Railway backend. Update `NEXT_PUBLIC_API_URL` in `.env.local` with your Railway backend URL after deployment.
 
 ---
 

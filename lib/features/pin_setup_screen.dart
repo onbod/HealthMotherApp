@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:provider/provider.dart';
 import 'package:flutter/services.dart';
-import '../providers/user_session_provider.dart';
 import 'home_screen.dart';
-import '../widgets/shared_app_bar.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class PinSetupScreen extends StatefulWidget {
   final bool isChangingPin;
 
-  const PinSetupScreen({Key? key, this.isChangingPin = false})
-    : super(key: key);
+  const PinSetupScreen({super.key, this.isChangingPin = false});
 
   @override
   State<PinSetupScreen> createState() => _PinSetupScreenState();
@@ -25,16 +21,21 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   bool _isConfirmingPin = false;
   String? _firstPin;
   bool _obscurePin = true;
+  bool _isDisposed = false;
+
+  final Color primaryColor = const Color(0xFF7C4DFF);
 
   @override
   void initState() {
     super.initState();
     if (kIsWeb) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (context) => const HomeScreen()),
-          (route) => false,
-        );
+        if (mounted && !_isDisposed) {
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+            (route) => false,
+          );
+        }
       });
       return;
     }
@@ -42,6 +43,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   }
 
   void _onPinChanged() {
+    if (_isDisposed || !mounted) return;
     if (_pinController.text.length == 4) {
       _validateAndSavePin();
     }
@@ -49,6 +51,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
   @override
   void dispose() {
+    _isDisposed = true;
     _pinController.removeListener(_onPinChanged);
     _pinController.dispose();
     _confirmPinController.dispose();
@@ -56,7 +59,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   }
 
   Future<void> _savePin(String pin) async {
-    if (!mounted) return;
+    if (!mounted || _isDisposed) return;
 
     setState(() {
       _isLoading = true;
@@ -68,26 +71,23 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       await prefs.setString('user_pin', pin);
       await prefs.setBool('pin_setup_completed', true);
 
-      if (!mounted) return;
+      if (!mounted || _isDisposed) return;
 
       if (widget.isChangingPin) {
-        // If changing PIN, just go back
         Navigator.of(context).pop(true);
       } else {
-        // If setting up PIN for the first time, go to home screen
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (context) => const HomeScreen()),
           (route) => false,
         );
       }
     } catch (e) {
-      if (!mounted) return;
-
+      if (!mounted || _isDisposed) return;
       setState(() {
         _errorMessage = 'Failed to save PIN. Please try again.';
       });
     } finally {
-      if (mounted) {
+      if (mounted && !_isDisposed) {
         setState(() {
           _isLoading = false;
         });
@@ -96,10 +96,9 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   }
 
   void _validateAndSavePin() {
-    if (!mounted) return;
+    if (!mounted || _isDisposed) return;
 
     if (!_isConfirmingPin) {
-      // First PIN entry
       final pin = _pinController.text;
       if (pin.length != 4) {
         setState(() {
@@ -113,7 +112,6 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
         _pinController.clear();
       });
     } else {
-      // Confirm PIN
       final pin = _pinController.text;
       if (pin.length != 4) {
         setState(() {
@@ -141,130 +139,245 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     return WillPopScope(
       onWillPop: () async {
         if (_isConfirmingPin) {
-          setState(() {
-            _isConfirmingPin = false;
-            _firstPin = null;
-            _pinController.clear();
-          });
+          if (mounted && !_isDisposed) {
+            setState(() {
+              _isConfirmingPin = false;
+              _firstPin = null;
+              _pinController.clear();
+            });
+          }
           return false;
         }
         return true;
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF3F4F6),
-        appBar: SharedAppBar(
-          visitNumber:
-              widget.isChangingPin
-                  ? (_isConfirmingPin ? 'Confirm New PIN' : 'Enter New PIN')
-                  : (_isConfirmingPin ? 'Confirm PIN' : 'Create PIN'),
-          onNotificationPressed: () {
-            // Handle notification press
-          },
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.black),
+            onPressed: () {
+              if (mounted && !_isDisposed) {
+                Navigator.maybePop(context);
+              }
+            },
+          ),
         ),
         body: SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const SizedBox(height: 40),
-                Text(
-                  widget.isChangingPin
-                      ? (_isConfirmingPin ? 'Confirm New PIN' : 'Enter New PIN')
-                      : (_isConfirmingPin ? 'Confirm PIN' : 'Create PIN'),
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF7C4DFF),
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  widget.isChangingPin
-                      ? (_isConfirmingPin
-                          ? 'Please confirm your new PIN'
-                          : 'Please enter your new PIN')
-                      : (_isConfirmingPin
-                          ? 'Please confirm your PIN'
-                          : 'Please create a 4-digit PIN to secure your account'),
-                  style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 20),
+                // Header Card
                 Container(
-                  width: 200,
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        primaryColor,
+                        primaryColor.withOpacity(0.8),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: primaryColor.withOpacity(0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: const Icon(
+                          Icons.lock_outline,
+                          color: Colors.white,
+                          size: 40,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        widget.isChangingPin
+                            ? (_isConfirmingPin
+                                ? 'Confirm New PIN'
+                                : 'Enter New PIN')
+                            : (_isConfirmingPin ? 'Confirm PIN' : 'Create PIN'),
+                        style: const TextStyle(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        widget.isChangingPin
+                            ? (_isConfirmingPin
+                                ? 'Please confirm your new PIN'
+                                : 'Please enter your new PIN')
+                            : (_isConfirmingPin
+                                ? 'Please confirm your PIN'
+                                : 'Please create a 4-digit PIN to secure your account'),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+                // PIN Input Card
+                Container(
+                  padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
                   ),
-                  child: TextField(
-                    controller: _pinController,
-                    keyboardType: TextInputType.number,
-                    maxLength: 4,
-                    obscureText: _obscurePin,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 24, letterSpacing: 8),
-                    decoration: InputDecoration(
-                      border: InputBorder.none,
-                      counterText: '',
-                      hintText: '••••',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[400],
-                        letterSpacing: 8,
-                      ),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePin ? Icons.visibility_off : Icons.visibility,
-                          color: Colors.grey[600],
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 200,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: _errorMessage.isNotEmpty
+                                ? Colors.red
+                                : primaryColor.withOpacity(0.3),
+                            width: 2,
+                          ),
                         ),
-                        onPressed: () {
-                          setState(() {
-                            _obscurePin = !_obscurePin;
-                          });
-                        },
+                        child: TextField(
+                          controller: _pinController,
+                          keyboardType: TextInputType.number,
+                          maxLength: 4,
+                          obscureText: _obscurePin,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 28,
+                            letterSpacing: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            counterText: '',
+                            hintText: '••••',
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade400,
+                              letterSpacing: 12,
+                            ),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePin
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                                color: Colors.grey.shade600,
+                              ),
+                              onPressed: () {
+                                if (mounted && !_isDisposed) {
+                                  setState(() {
+                                    _obscurePin = !_obscurePin;
+                                  });
+                                }
+                              },
+                            ),
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly
+                          ],
+                        ),
                       ),
-                    ),
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      if (_errorMessage.isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.error_outline,
+                                color: Colors.red.shade600,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  _errorMessage,
+                                  style: TextStyle(
+                                    color: Colors.red.shade700,
+                                    fontSize: 14,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                      if (_isLoading) ...[
+                        const SizedBox(height: 20),
+                        const CircularProgressIndicator(),
+                      ],
+                    ],
                   ),
                 ),
-                if (_errorMessage.isNotEmpty)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16.0),
-                    child: Text(
-                      _errorMessage,
-                      style: const TextStyle(color: Colors.red, fontSize: 14),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                const Spacer(),
+                const SizedBox(height: 24),
+                // Continue Button
                 SizedBox(
                   width: double.infinity,
+                  height: 56,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _validateAndSavePin,
+                    onPressed:
+                        _isLoading ? null : _validateAndSavePin,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7C4DFF),
+                      backgroundColor: primaryColor,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 15),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(16),
                       ),
+                      elevation: 0,
                     ),
-                    child:
-                        _isLoading
-                            ? const CircularProgressIndicator(
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            )
-                            : Text(
-                              _isConfirmingPin ? 'Confirm PIN' : 'Continue',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            width: 24,
+                            height: 24,
+                            child: CircularProgressIndicator(
+                              valueColor:
+                                  AlwaysStoppedAnimation<Color>(Colors.white),
+                              strokeWidth: 2.5,
                             ),
+                          )
+                        : Text(
+                            _isConfirmingPin ? 'Confirm PIN' : 'Continue',
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
               ],

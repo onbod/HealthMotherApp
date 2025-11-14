@@ -5,7 +5,7 @@ import '../services/alarm_service.dart';
 import 'package:flutter/services.dart';
 
 class HealthVideosScreen extends StatelessWidget {
-  const HealthVideosScreen({Key? key}) : super(key: key);
+  const HealthVideosScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -62,10 +62,11 @@ class HealthVideosScreen extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => VideoPlayerScreen(
-                      videoId: video['videoId']!,
-                      title: video['title']!,
-                    ),
+                    builder:
+                        (context) => VideoPlayerScreen(
+                          videoId: video['videoId']!,
+                          title: video['title']!,
+                        ),
                   ),
                 );
               },
@@ -74,8 +75,9 @@ class HealthVideosScreen extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   ClipRRect(
-                    borderRadius:
-                        const BorderRadius.vertical(top: Radius.circular(12)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(12),
+                    ),
                     child: Image.network(
                       'https://img.youtube.com/vi/${video['videoId']}/maxresdefault.jpg',
                       height: 200,

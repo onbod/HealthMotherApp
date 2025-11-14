@@ -11,7 +11,6 @@ import '../widgets/health_tips_carousel.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../auth/login_screen.dart'; // Import the LoginScreen
-import 'package:firebase_core/firebase_core.dart'; // Import firebase_core
 import 'notifications_screen.dart';
 import '../providers/user_session_provider.dart';
 import '../services/notification_service.dart';
@@ -21,62 +20,8 @@ import 'package:healthymamaapp/services/alarm_service.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'nutrition_tips_screen.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
-import 'messages_screen.dart';
 import 'chat_screen.dart';
 import 'package:intl/intl.dart'; // For date formatting
-
-Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter is initialized
-  await Firebase.initializeApp(); // Initialize Firebase
-
-  SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.immersiveSticky,
-    overlays: [],
-  ); // Hide status and navigation bars
-  SystemChrome.setSystemUIOverlayStyle(
-    SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent, // Make status bar transparent
-      statusBarIconBrightness: Brightness.dark, // Dark icons for Android
-      statusBarBrightness: Brightness.light, // Dark text for iOS
-    ),
-  );
-  runApp(
-    ChangeNotifierProvider(
-      create: (_) => ThemeProvider(),
-      child: const HealthTipsApp(),
-    ),
-  );
-}
-
-class HealthTipsApp extends StatelessWidget {
-  const HealthTipsApp({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final themeProvider = Provider.of<ThemeProvider>(context);
-
-    return MaterialApp(
-      title: 'Health Tips',
-      theme: themeProvider.theme,
-      home: StreamBuilder<User?>(
-        stream: FirebaseAuth.instance.authStateChanges(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          if (snapshot.hasData) {
-            return const HomeScreen(); // Navigate to HomeScreen (reverted)
-          } else {
-            return const LoginScreen();
-          }
-        },
-      ),
-      debugShowCheckedModeBanner: false,
-    );
-  }
-}
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -87,7 +32,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen>
     with SingleTickerProviderStateMixin {
-  int _tabIndex = 0;
+  final int _tabIndex = 0;
   final Color primaryColor = const Color(0xFF7C4DFF);
   late AnimationController _animationController;
   late Animation<double> _scaleAnimation;
@@ -150,6 +95,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   @override
   Widget build(BuildContext context) {
+    try {
     final screenWidth = MediaQuery.of(context).size.width;
     final screenHeight = MediaQuery.of(context).size.height;
 
@@ -203,23 +149,12 @@ class _HomeScreenState extends State<HomeScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // --- FIXED WIDGETS (Next Contact Section and Week Selector) ---
-                    // Next Contact Section (Old design, updated with new info)
-                    Center(
-                      child: Container(
-                        margin: const EdgeInsets.all(16),
+                    // Next Contact Section - Improved UI
+                    Padding(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF3F4F6),
-                          borderRadius: BorderRadius.circular(9999),
-                          border: Border.all(color: const Color(0xFFD1D5DB)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Expanded(
+                        horizontal: 16,
+                        vertical: 12,
+                      ),
                               child: Consumer<UserSessionProvider>(
                                 builder: (context, userSession, child) {
                                   final nextVisitDate =
@@ -229,44 +164,130 @@ class _HomeScreenState extends State<HomeScreen>
                                   final latestVisit =
                                       userSession.getLatestVisitNumber() ?? 0;
 
-                                  String displayText =
-                                      'Next Contact: Not scheduled';
+                          String displayText = 'Next Contact: Not scheduled';
+                          String? dateText;
+                          Color backgroundColor = const Color(
+                            0xFF7C4DFF,
+                          ).withOpacity(0.1);
                                   Color textColor = const Color(0xFF7C4DFF);
+                          IconData icon = Icons.calendar_today;
+                          Color iconColor = const Color(0xFF7C4DFF);
 
                                   if (userSession.hasDelivered()) {
-                                    displayText =
-                                        'Congratulations on your delivery!';
-                                    textColor = Colors.green;
+                            displayText = 'Congratulations!';
+                            dateText = 'Your delivery is complete';
+                            backgroundColor = Colors.green.withOpacity(0.1);
+                            textColor = Colors.green[700]!;
+                            icon = Icons.celebration;
+                            iconColor = Colors.green[700]!;
                                   } else if (latestVisit >= 8) {
-                                    displayText = 'Completed All 8 visits';
-                                    textColor = Colors.green;
+                            displayText = 'All Visits Completed';
+                            dateText = 'You\'ve completed all 8 visits';
+                            backgroundColor = Colors.green.withOpacity(0.1);
+                            textColor = Colors.green[700]!;
+                            icon = Icons.check_circle;
+                            iconColor = Colors.green[700]!;
                                   } else if (nextVisitDate != null) {
-                                    displayText =
-                                        'Next Contact: ' +
-                                        DateFormat(
-                                          'dd/MM/yyyy',
-                                        ).format(nextVisitDate);
+                            displayText = 'Next Contact';
+                            dateText = DateFormat(
+                              'EEEE, MMMM dd, yyyy',
+                            ).format(nextVisitDate);
+                            backgroundColor = const Color(
+                              0xFF7C4DFF,
+                            ).withOpacity(0.1);
                                     textColor = const Color(0xFF7C4DFF);
-                                  }
-                                  return Text(
-                                    displayText,
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: textColor,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  );
-                                },
+                            icon = Icons.calendar_today;
+                            iconColor = const Color(0xFF7C4DFF);
+                          }
+
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 14,
+                            ),
+                            decoration: BoxDecoration(
+                              color: backgroundColor,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: iconColor.withOpacity(0.3),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: iconColor.withOpacity(0.1),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(10),
+                                  decoration: BoxDecoration(
+                                    color: iconColor.withOpacity(0.15),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Icon(icon, color: iconColor, size: 24),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        displayText,
+                                        style: TextStyle(
+                                          fontSize: 14,
+                                          color: textColor,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      if (dateText != null) ...[
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          dateText,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: textColor.withOpacity(0.8),
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ],
                               ),
                             ),
                           ],
                         ),
+                          );
+                        },
                       ),
                     ),
 
                     // WeekSelector is now fixed
-                    const WeekSelector(),
+                    Builder(
+                      builder: (context) {
+                        try {
+                          return const WeekSelector();
+                        } catch (e, stackTrace) {
+                          print('HOME_SCREEN: Error in WeekSelector: $e');
+                          print('HOME_SCREEN: Stack trace: $stackTrace');
+                          return Container(
+                            height: 60,
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red, width: 1),
+                            ),
+                            child: const Center(
+                              child: Text('Error loading week selector'),
+                            ),
+                          );
+                        }
+                      },
+                    ),
 
                     const SizedBox(
                       height: 16,
@@ -284,7 +305,27 @@ class _HomeScreenState extends State<HomeScreen>
                               padding: EdgeInsets.symmetric(
                                 horizontal: screenWidth * 0.04,
                               ),
-                              child: const BabyProgressCard(),
+                              child: Builder(
+                                builder: (context) {
+                                  try {
+                                    return const BabyProgressCard();
+                                  } catch (e, stackTrace) {
+                                    print('HOME_SCREEN: Error in BabyProgressCard: $e');
+                                    print('HOME_SCREEN: Stack trace: $stackTrace');
+                                    return Container(
+                                      padding: const EdgeInsets.all(20),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(color: Colors.red, width: 1),
+                                      ),
+                                      child: const Center(
+                                        child: Text('Error loading progress'),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
                             ),
                             SizedBox(height: screenHeight * 0.02),
 
@@ -424,6 +465,36 @@ class _HomeScreenState extends State<HomeScreen>
         ),
       ),
     );
+    } catch (e, stackTrace) {
+      print('HOME_SCREEN: Fatal error in build: $e');
+      print('HOME_SCREEN: Stack trace: $stackTrace');
+      // Return a simple error screen instead of crashing
+      return Scaffold(
+        backgroundColor: const Color(0xFFF3F4F6),
+        appBar: AppBar(
+          title: const Text('Error'),
+          backgroundColor: const Color(0xFF7C4DFF),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, size: 64, color: Colors.red),
+              const SizedBox(height: 16),
+              const Text(
+                'An error occurred',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Please restart the app',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
   }
 }
 
@@ -431,8 +502,7 @@ class _HealthTipCard extends StatelessWidget {
   final String text;
   final String tipLabel;
 
-  const _HealthTipCard({Key? key, required this.text, required this.tipLabel})
-    : super(key: key);
+  const _HealthTipCard({super.key, required this.text, required this.tipLabel});
 
   @override
   Widget build(BuildContext context) {
@@ -479,7 +549,7 @@ class _HealthTipCard extends StatelessWidget {
 }
 
 class NutritionTipsCarousel extends StatelessWidget {
-  const NutritionTipsCarousel({Key? key}) : super(key: key);
+  const NutritionTipsCarousel({super.key});
 
   Future<List<NutritionTip>> _fetchNutritionTips() async {
     final snapshot =

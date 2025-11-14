@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/user_session_provider.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class WeekSelector extends StatefulWidget {
   // You might want to pass the current week or a date to this widget
   // final int currentWeek;
   // const WeekSelector({Key? key, required this.currentWeek}) : super(key: key);
 
-  const WeekSelector({Key? key}) : super(key: key);
+  const WeekSelector({super.key});
 
   @override
   _WeekSelectorState createState() => _WeekSelectorState();
@@ -95,39 +94,93 @@ class _WeekSelectorState extends State<WeekSelector> {
   }
 
   void _calculateCurrentWeek(UserSessionProvider userSession) {
-    print('\n========== WEEK SELECTOR DEBUG INFO (NEW LOGIC) ==========');
-    print(
-      'User data present for calculation:  [32m[0m${userSession.userData != null}',
-    );
+    print('\n========== WEEK SELECTOR DEBUG INFO (IMPROVED LOGIC) ==========');
+    print('User data present for calculation: ${userSession.userData != null}');
     print('Current _isDataProcessed state: $_isDataProcessed');
 
-    // Prefer latest gestational age from ANC visits (schema: anc_visit.gestation_weeks)
-    final latestGestationalAge = userSession.getLatestGestationalAge();
-    print('Latest gestational age from ANC (provider): $latestGestationalAge');
+    int? resolvedWeek;
+    final bool babyBorn = userSession.hasDelivered();
 
-    int? resolvedWeek = latestGestationalAge;
-
-    // Fallback to pregnancy.current_gestation_weeks from schema
-    if (resolvedWeek == null) {
-      final currentPreg = userSession.getCurrentPregnancy();
-      if (currentPreg != null &&
-          currentPreg['current_gestation_weeks'] != null) {
-        final cg = currentPreg['current_gestation_weeks'];
-        if (cg is int)
-          resolvedWeek = cg;
-        else if (cg is String)
-          resolvedWeek = int.tryParse(cg);
-        print('Resolved from pregnancy.current_gestation_weeks: $resolvedWeek');
+    // If baby is born, always show week 40
+    if (babyBorn) {
+      resolvedWeek = 40;
+      print('Baby is born, setting week to 40');
+    } else {
+      // Get latest ANC visit for most accurate calculation
+      final latestAncVisit = userSession.getLatestAncVisit();
+      if (latestAncVisit != null) {
+        // Try to get gestation_weeks from visit
+        final visitWeeks = latestAncVisit['gestation_weeks'] ??
+            latestAncVisit['gestational_age_weeks'] ??
+            latestAncVisit['gestational_age'];
+        
+        if (visitWeeks != null) {
+          int? weeks;
+          if (visitWeeks is int) {
+            weeks = visitWeeks;
+          } else if (visitWeeks is String) {
+            weeks = int.tryParse(visitWeeks);
+          } else if (visitWeeks is num) {
+            weeks = visitWeeks.toInt();
+          }
+          
+          if (weeks != null && weeks > 0) {
+            // If visit has a visit_date, calculate days since visit and add to gestational age
+            final visitDateStr = latestAncVisit['visit_date'];
+            if (visitDateStr != null) {
+              final visitDate = DateTime.tryParse(visitDateStr.toString());
+              if (visitDate != null) {
+                final daysSinceVisit = DateTime.now().difference(visitDate).inDays;
+                final daysAtVisit = weeks * 7;
+                final currentDays = (daysAtVisit + daysSinceVisit).clamp(1, 280);
+                resolvedWeek = (currentDays / 7).floor().clamp(1, 40);
+                print('Calculated from latest visit: weeks=$weeks, daysSinceVisit=$daysSinceVisit, currentDays=$currentDays, resolvedWeek=$resolvedWeek');
+              } else {
+                resolvedWeek = weeks.clamp(1, 40);
+                print('Using visit weeks without date calculation: $resolvedWeek');
+              }
+            } else {
+              resolvedWeek = weeks.clamp(1, 40);
+              print('Using visit weeks (no date): $resolvedWeek');
+            }
+          }
+        }
       }
-    }
 
-    // Fallback to compute from LMP if available
-    if (resolvedWeek == null) {
-      final lmp = userSession.getLmp();
-      if (lmp != null) {
-        final diffDays = DateTime.now().difference(lmp).inDays;
-        resolvedWeek = (diffDays / 7).floor().clamp(1, 40);
-        print('Resolved from LMP: $resolvedWeek');
+      // Fallback to getLatestGestationalAge() if visit calculation didn't work
+      if (resolvedWeek == null) {
+        final latestGestationalAge = userSession.getLatestGestationalAge();
+        if (latestGestationalAge != null && latestGestationalAge > 0) {
+          resolvedWeek = latestGestationalAge.clamp(1, 40);
+          print('Resolved from getLatestGestationalAge(): $resolvedWeek');
+        }
+      }
+
+      // Fallback to pregnancy.current_gestation_weeks from schema
+      if (resolvedWeek == null) {
+        final currentPreg = userSession.getCurrentPregnancy();
+        if (currentPreg != null &&
+            currentPreg['current_gestation_weeks'] != null) {
+          final cg = currentPreg['current_gestation_weeks'];
+          if (cg is int) {
+            resolvedWeek = cg.clamp(1, 40);
+          } else if (cg is String) {
+            resolvedWeek = (int.tryParse(cg) ?? 1).clamp(1, 40);
+          } else if (cg is num) {
+            resolvedWeek = cg.toInt().clamp(1, 40);
+          }
+          print('Resolved from pregnancy.current_gestation_weeks: $resolvedWeek');
+        }
+      }
+
+      // Fallback to compute from LMP if available
+      if (resolvedWeek == null) {
+        final lmp = userSession.getLmp();
+        if (lmp != null) {
+          final diffDays = DateTime.now().difference(lmp).inDays;
+          resolvedWeek = (diffDays / 7).floor().clamp(1, 40);
+          print('Resolved from LMP: $resolvedWeek');
+        }
       }
     }
 
@@ -140,7 +193,7 @@ class _WeekSelectorState extends State<WeekSelector> {
       print('Final current week set to: $_currentWeek');
       _needsScroll = true;
     });
-    print('========== END WEEK SELECTOR DEBUG INFO (NEW LOGIC) ==========');
+    print('========== END WEEK SELECTOR DEBUG INFO (IMPROVED LOGIC) ==========');
   }
 
   @override
@@ -170,7 +223,7 @@ class _WeekSelectorState extends State<WeekSelector> {
 
         return Container(
           height: 80,
-          color: Colors.white,
+          color: Theme.of(context).scaffoldBackgroundColor,
           padding: const EdgeInsets.symmetric(vertical: 12.0),
           child: ListView.builder(
             controller: _scrollController,

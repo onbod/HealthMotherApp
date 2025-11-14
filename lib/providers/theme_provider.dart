@@ -33,7 +33,6 @@ class ThemeProvider with ChangeNotifier {
       primary: const Color(0xFF7C4DFF),
       secondary: const Color(0xFF7C4DFF),
       surface: Colors.white,
-      background: const Color(0xFFF3F4F6),
     ),
     cardColor: Colors.white,
     textTheme: const TextTheme(
@@ -50,7 +49,6 @@ class ThemeProvider with ChangeNotifier {
       primary: const Color(0xFF7C4DFF),
       secondary: const Color(0xFF7C4DFF),
       surface: const Color(0xFF2C2C2C),
-      background: const Color(0xFF1A1A1A),
     ),
     cardColor: const Color(0xFF2C2C2C),
     textTheme: const TextTheme(

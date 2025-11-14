@@ -1,3 +1,5 @@
+"use client"
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -102,83 +104,104 @@ export default function PatientsPage() {
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold">Patients</h1>
-          <p className="text-muted-foreground text-sm sm:text-base">List of patients under your care</p>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold">Patients</h1>
+          <p className="text-muted-foreground text-xs sm:text-sm lg:text-base">List of patients under your care</p>
         </div>
-        <Button onClick={() => setShowAdd(true)}>Add Patient</Button>
+        <Button onClick={() => setShowAdd(true)} className="w-full sm:w-auto shrink-0">Add Patient</Button>
       </div>
       {/* Dashboard summary */}
-      <div className="grid gap-3 sm:gap-4 grid-cols-2 md:grid-cols-4">
-        <Card className="bg-gradient-to-br from-green-600 to-green-700 text-white">
-          <CardHeader className="text-white">
-            <CardTitle className="text-white">Total Patients</CardTitle>
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-gradient-to-br from-green-600 to-green-700 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="text-white px-4 sm:px-6 pt-4 sm:pt-6 pb-2">
+            <CardTitle className="text-white text-xs sm:text-sm font-medium">Total Patients</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalPatients}</div>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold">{totalPatients}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white">
-          <CardHeader className="text-white">
-            <CardTitle className="text-white">Active</CardTitle>
+        <Card className="bg-gradient-to-br from-blue-600 to-blue-700 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="text-white px-4 sm:px-6 pt-4 sm:pt-6 pb-2">
+            <CardTitle className="text-white text-xs sm:text-sm font-medium">Active</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activePatients}</div>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold">{activePatients}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-red-600 to-red-700 text-white">
-          <CardHeader className="text-white">
-            <CardTitle className="text-white">Delivered</CardTitle>
+        <Card className="bg-gradient-to-br from-red-600 to-red-700 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="text-white px-4 sm:px-6 pt-4 sm:pt-6 pb-2">
+            <CardTitle className="text-white text-xs sm:text-sm font-medium">Delivered</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{deliveredPatients}</div>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold">{deliveredPatients}</div>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-yellow-600 to-yellow-700 text-white">
-          <CardHeader className="text-white">
-            <CardTitle className="text-white">High Risk</CardTitle>
+        <Card className="bg-gradient-to-br from-yellow-600 to-yellow-700 text-white hover:shadow-lg transition-shadow">
+          <CardHeader className="text-white px-4 sm:px-6 pt-4 sm:pt-6 pb-2">
+            <CardTitle className="text-white text-xs sm:text-sm font-medium">High Risk</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{highRiskPatients}</div>
+          <CardContent className="px-4 sm:px-6 pb-4 sm:pb-6">
+            <div className="text-2xl sm:text-3xl lg:text-4xl font-bold">{highRiskPatients}</div>
           </CardContent>
         </Card>
       </div>
-      <Input placeholder="Search patients..." value={search} onChange={e => setSearch(e.target.value)} className="max-w-xs" />
-      {/* Table view for patients */}
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Age</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Weeks</TableHead>
-              <TableHead>Due Date</TableHead>
-              <TableHead>Risk</TableHead>
-              <TableHead>Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((patient) => (
-              <TableRow key={patient.id} className="hover:bg-gray-50 cursor-pointer">
-                <TableCell>{patient.name}</TableCell>
-                <TableCell>{patient.age}</TableCell>
-                <TableCell>
-                  <Badge variant={patient.status === "Delivered" ? "secondary" : "default"}>{patient.status}</Badge>
-                </TableCell>
-                <TableCell>{patient.weeks}</TableCell>
-                <TableCell>{patient.dueDate}</TableCell>
-                <TableCell>
-                  <Badge variant={patient.riskLevel === "High" ? "destructive" : patient.riskLevel === "Medium" ? "secondary" : "outline"}>{patient.riskLevel}</Badge>
-                </TableCell>
-                <TableCell>
-                  <Button size="sm" variant="outline" onClick={() => { setSelectedPatient(patient); setShowDetail(true); }}>View</Button>
-                </TableCell>
+      <Input 
+        placeholder="Search patients..." 
+        value={search} 
+        onChange={e => setSearch(e.target.value)} 
+        className="w-full sm:max-w-xs" 
+      />
+      {/* Table view for patients - Responsive */}
+      <div className="overflow-x-auto -mx-4 sm:mx-0">
+        <div className="inline-block min-w-full align-middle px-4 sm:px-0">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="text-xs sm:text-sm">Name</TableHead>
+                <TableHead className="text-xs sm:text-sm hidden sm:table-cell">Age</TableHead>
+                <TableHead className="text-xs sm:text-sm">Status</TableHead>
+                <TableHead className="text-xs sm:text-sm hidden md:table-cell">Weeks</TableHead>
+                <TableHead className="text-xs sm:text-sm hidden lg:table-cell">Due Date</TableHead>
+                <TableHead className="text-xs sm:text-sm">Risk</TableHead>
+                <TableHead className="text-xs sm:text-sm">Actions</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((patient) => (
+                <TableRow key={patient.id} className="hover:bg-gray-50 cursor-pointer">
+                  <TableCell className="font-medium text-sm sm:text-base">{patient.name}</TableCell>
+                  <TableCell className="text-xs sm:text-sm hidden sm:table-cell">{patient.age}</TableCell>
+                  <TableCell>
+                    <Badge variant={patient.status === "Delivered" ? "secondary" : "default"} className="text-[10px] sm:text-xs">
+                      {patient.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-xs sm:text-sm hidden md:table-cell">{patient.weeks}</TableCell>
+                  <TableCell className="text-xs sm:text-sm hidden lg:table-cell">{patient.dueDate}</TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant={patient.riskLevel === "High" ? "destructive" : patient.riskLevel === "Medium" ? "secondary" : "outline"}
+                      className="text-[10px] sm:text-xs"
+                    >
+                      {patient.riskLevel}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => { setSelectedPatient(patient); setShowDetail(true); }}
+                      className="text-xs sm:text-sm px-2 sm:px-3"
+                    >
+                      View
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
       {/* Add Patient Modal */}
       {showAdd && (

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class AlarmPage extends StatefulWidget {
-  const AlarmPage({Key? key}) : super(key: key);
+  const AlarmPage({super.key});
 
   @override
   State<AlarmPage> createState() => _AlarmPageState();
@@ -55,14 +55,16 @@ class _AlarmPageState extends State<AlarmPage> {
             const SizedBox(height: 32),
             ElevatedButton(
               onPressed: _isPlaying ? _stopAlarm : null,
-              child: const Text('Stop Alarm'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 foregroundColor: Colors.white,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 32,
+                  vertical: 16,
+                ),
                 textStyle: const TextStyle(fontSize: 20),
               ),
+              child: const Text('Stop Alarm'),
             ),
           ],
         ),

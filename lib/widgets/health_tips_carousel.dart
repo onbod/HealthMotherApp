@@ -3,7 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../features/health_tips_screen.dart';
 
 class HealthTipsCarousel extends StatelessWidget {
-  const HealthTipsCarousel({Key? key}) : super(key: key);
+  const HealthTipsCarousel({super.key});
 
   Future<List<HealthTip>> _fetchHealthTips() async {
     final snapshot =
@@ -48,12 +48,7 @@ class HealthTipsCarousel extends StatelessWidget {
                     ),
                   );
                 },
-                child: Text(
-                  'View All',
-                  style: TextStyle(
-                    color: primaryColor,
-                  ),
-                ),
+                child: Text('View All', style: TextStyle(color: primaryColor)),
               ),
             ],
           ),
@@ -81,12 +76,14 @@ class HealthTipsCarousel extends StatelessWidget {
                 itemBuilder: (context, index) {
                   final tip = healthTips[index];
                   final screenWidth = MediaQuery.of(context).size.width;
-                  final cardWidth = screenWidth < 340
-                      ? screenWidth - 32
-                      : (screenWidth < 400 ? screenWidth - 48 : 280);
+                  final cardWidth =
+                      screenWidth < 340
+                          ? screenWidth - 32
+                          : (screenWidth < 400 ? screenWidth - 48 : 280);
                   return Container(
-                    width: (cardWidth > 320 ? 320 : cardWidth)
-                        .toDouble(), // max 320, min responsive
+                    width:
+                        (cardWidth > 320 ? 320 : cardWidth)
+                            .toDouble(), // max 320, min responsive
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     child: Card(
                       elevation: 0,
@@ -108,7 +105,8 @@ class HealthTipsCarousel extends StatelessWidget {
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.all(
-                                        6), // Reduced from 8
+                                      6,
+                                    ), // Reduced from 8
                                     decoration: BoxDecoration(
                                       color: tip.color.withOpacity(0.1),
                                       borderRadius: BorderRadius.circular(8),
@@ -156,12 +154,14 @@ class HealthTipsCarousel extends StatelessWidget {
                                     },
                                     style: TextButton.styleFrom(
                                       padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4), // Reduced padding
-                                      minimumSize: Size
-                                          .zero, // Allow button to be smaller
-                                      tapTargetSize: MaterialTapTargetSize
-                                          .shrinkWrap, // Reduce tap target
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ), // Reduced padding
+                                      minimumSize:
+                                          Size.zero, // Allow button to be smaller
+                                      tapTargetSize:
+                                          MaterialTapTargetSize
+                                              .shrinkWrap, // Reduce tap target
                                     ),
                                     child: Text(
                                       'Read More',
@@ -194,52 +194,54 @@ class HealthTipsCarousel extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: tip.color.withOpacity(0.1),
-                borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Row(
-                children: [
-                  Icon(tip.icon, color: tip.color, size: 32),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Text(
-                      tip.title,
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: primaryColor,
+      builder:
+          (context) => Container(
+            height: MediaQuery.of(context).size.height * 0.7,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: tip.color.withOpacity(0.1),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(tip.icon, color: tip.color, size: 32),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          tip.title,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: SingleChildScrollView(
+                      child: Text(
+                        tip.description,
+                        style: const TextStyle(fontSize: 16, height: 1.5),
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: SingleChildScrollView(
-                  child: Text(
-                    tip.description,
-                    style: const TextStyle(fontSize: 16, height: 1.5),
-                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 }

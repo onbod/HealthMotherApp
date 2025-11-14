@@ -7,10 +7,10 @@ class VideoPlayerScreen extends StatefulWidget {
   final String title;
 
   const VideoPlayerScreen({
-    Key? key,
+    super.key,
     required this.videoId,
     required this.title,
-  }) : super(key: key);
+  });
 
   @override
   State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
@@ -26,9 +26,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   void initState() {
     super.initState();
     // Lock to portrait mode initially
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
 
     _initializePlayer();
   }
@@ -64,9 +62,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       // Handle orientation changes
       if (!_controller.value.isFullScreen) {
         // Return to portrait mode when exiting fullscreen
-        SystemChrome.setPreferredOrientations([
-          DeviceOrientation.portraitUp,
-        ]);
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
       }
     }
   }
@@ -75,9 +71,7 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   void dispose() {
     _controller.dispose();
     // Reset orientation when leaving the screen
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.dispose();
   }
 
@@ -93,71 +87,70 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        appBar: _isFullScreen
-            ? null
-            : AppBar(
-                backgroundColor: Colors.black,
-                elevation: 0,
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-                title: Text(
-                  widget.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
+        appBar:
+            _isFullScreen
+                ? null
+                : AppBar(
+                  backgroundColor: Colors.black,
+                  elevation: 0,
+                  leading: IconButton(
+                    icon: const Icon(Icons.arrow_back, color: Colors.white),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                  title: Text(
+                    widget.title,
+                    style: const TextStyle(color: Colors.white, fontSize: 18),
                   ),
                 ),
-              ),
         body: SafeArea(
           child: Center(
-            child: _error != null
-                ? Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        Icons.error_outline,
-                        color: Colors.red,
-                        size: 48,
+            child:
+                _error != null
+                    ? Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          color: Colors.red,
+                          size: 48,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          _error!,
+                          style: const TextStyle(color: Colors.white),
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton(
+                          onPressed: () {
+                            setState(() {
+                              _error = null;
+                            });
+                            _initializePlayer();
+                          },
+                          child: const Text('Retry'),
+                        ),
+                      ],
+                    )
+                    : YoutubePlayer(
+                      controller: _controller,
+                      showVideoProgressIndicator: true,
+                      progressIndicatorColor: Theme.of(context).primaryColor,
+                      progressColors: ProgressBarColors(
+                        playedColor: Theme.of(context).primaryColor,
+                        handleColor: Theme.of(context).primaryColor,
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        _error!,
-                        style: const TextStyle(color: Colors.white),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton(
-                        onPressed: () {
-                          setState(() {
-                            _error = null;
-                          });
-                          _initializePlayer();
-                        },
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  )
-                : YoutubePlayer(
-                    controller: _controller,
-                    showVideoProgressIndicator: true,
-                    progressIndicatorColor: Theme.of(context).primaryColor,
-                    progressColors: ProgressBarColors(
-                      playedColor: Theme.of(context).primaryColor,
-                      handleColor: Theme.of(context).primaryColor,
+                      onReady: () {
+                        setState(() {
+                          _isPlayerReady = true;
+                        });
+                      },
+                      onEnded: (data) {
+                        if (_isFullScreen) {
+                          _controller.toggleFullScreenMode();
+                        }
+                      },
                     ),
-                    onReady: () {
-                      setState(() {
-                        _isPlayerReady = true;
-                      });
-                    },
-                    onEnded: (data) {
-                      if (_isFullScreen) {
-                        _controller.toggleFullScreenMode();
-                      }
-                    },
-                  ),
           ),
         ),
       ),

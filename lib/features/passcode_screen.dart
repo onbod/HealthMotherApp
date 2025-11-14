@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'home_screen.dart'; // Import your home screen
 
 class PasscodeScreen extends StatefulWidget {
-  const PasscodeScreen({Key? key}) : super(key: key);
+  const PasscodeScreen({super.key});
 
   @override
   State<PasscodeScreen> createState() => _PasscodeScreenState();
@@ -41,7 +41,8 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
             _navigateToHome();
           } else {
             setState(() {
-              _message = 'Biometric authentication failed. Please enter passcode.';
+              _message =
+                  'Biometric authentication failed. Please enter passcode.';
             });
           }
         } catch (e) {
@@ -129,10 +130,7 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
               style: const TextStyle(fontSize: 24),
             ),
             const SizedBox(height: 20),
-            Text(
-              _message,
-              style: const TextStyle(color: Colors.red),
-            ),
+            Text(_message, style: const TextStyle(color: Colors.red)),
             const SizedBox(height: 20),
             Column(
               children: [
@@ -169,10 +167,11 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
                       child: OutlinedButton(
                         onPressed: () {
                           if (_passcodeController.text.isNotEmpty) {
-                            _passcodeController.text = _passcodeController
-                                .text
+                            _passcodeController.text = _passcodeController.text
                                 .substring(
-                                    0, _passcodeController.text.length - 1);
+                                  0,
+                                  _passcodeController.text.length - 1,
+                                );
                           }
                         },
                         style: OutlinedButton.styleFrom(
@@ -191,4 +190,4 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
       ),
     );
   }
-} 
+}

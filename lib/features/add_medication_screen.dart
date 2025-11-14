@@ -10,7 +10,6 @@ import 'package:flutter/services.dart';
 import '../widgets/global_navigation.dart';
 import 'medication_screen.dart';
 
-// Top-level callback for alarm
 void medicationAlarmCallback() async {
   await AlarmService.start();
 }
@@ -18,7 +17,7 @@ void medicationAlarmCallback() async {
 class AddMedicationScreen extends StatefulWidget {
   final Medication? medication;
 
-  const AddMedicationScreen({Key? key, this.medication}) : super(key: key);
+  const AddMedicationScreen({super.key, this.medication});
 
   @override
   State<AddMedicationScreen> createState() => _AddMedicationScreenState();
@@ -297,7 +296,7 @@ class _AddMedicationScreenState extends State<AddMedicationScreen> {
               Padding(
                 padding: const EdgeInsets.only(bottom: 16.0),
                 child: DropdownButtonFormField<String>(
-                  value: _selectedFrequency,
+                  initialValue: _selectedFrequency,
                   decoration: InputDecoration(
                     labelText: 'Frequency',
                     border: OutlineInputBorder(

@@ -155,40 +155,40 @@ export function MobileNavigation({ isOpen, activeView, onViewChange, onClose }: 
         aria-label="Navigation menu"
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600 shadow-md">
-              <Heart className="h-4 w-4 text-white" />
+        <div className="flex items-center justify-between p-3 sm:p-4 border-b border-gray-100 bg-gradient-to-r from-green-50 to-emerald-50">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex h-8 w-8 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-green-600 shadow-md shrink-0">
+              <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </div>
-            <div>
-              <h2 className="text-lg font-bold text-gray-900">PresTrack</h2>
-              <p className="text-xs text-gray-600">Maternal Health Dashboard</p>
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 truncate">HealthyMother</h2>
+              <p className="text-[10px] sm:text-xs text-gray-600 truncate">Maternal Health Dashboard</p>
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
-            className="h-8 w-8 rounded-full hover:bg-white/80"
+            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-white/80 shrink-0"
             aria-label="Close navigation menu"
           >
-            <X className="h-4 w-4" />
+            <X className="h-4 w-4 sm:h-5 sm:w-5" />
           </Button>
         </div>
 
         {/* Navigation Items */}
-        <div className="max-h-[calc(100vh-120px)] overflow-y-auto">
-          <div className="p-4 space-y-2">
+        <div className="max-h-[calc(100vh-120px)] overflow-y-auto overscroll-contain">
+          <div className="p-3 sm:p-4 space-y-2">
             {menu.map((item, index) => (
               <button
                 key={item.id}
                 onClick={() => handleItemClick(item.id)}
                 className={cn(
-                  "w-full flex items-center justify-between p-4 rounded-xl text-left transition-all duration-200",
+                  "w-full flex items-center justify-between p-3 sm:p-4 rounded-xl text-left transition-all duration-200",
                   "hover:bg-gray-50 active:bg-gray-100 active:scale-[0.98]",
-                  "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                  "focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2",
                   activeView === item.id
-                    ? "bg-blue-50 text-blue-700 border-2 border-blue-200 shadow-sm"
+                    ? "bg-green-50 text-green-700 border-2 border-green-200 shadow-sm"
                     : "border-2 border-transparent hover:border-gray-200",
                 )}
                 style={{
@@ -196,30 +196,30 @@ export function MobileNavigation({ isOpen, activeView, onViewChange, onClose }: 
                   animation: isOpen ? "slideInFromTop 0.3s ease-out forwards" : "none",
                 }}
               >
-                <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
                   <div
                     className={cn(
-                      "flex items-center justify-center w-10 h-10 rounded-lg transition-colors",
-                      activeView === item.id ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-600",
+                      "flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg transition-colors shrink-0",
+                      activeView === item.id ? "bg-green-100 text-green-600" : "bg-gray-100 text-gray-600",
                     )}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className="h-4 w-4 sm:h-5 sm:w-5" />
                   </div>
-                  <div className="flex-1">
-                    <div className="font-semibold text-base">{item.title}</div>
-                    <div className="text-sm text-gray-500">{item.description}</div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm sm:text-base truncate">{item.title}</div>
+                    <div className="text-xs sm:text-sm text-gray-500 truncate">{item.description}</div>
                   </div>
                 </div>
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 shrink-0">
                   {item.badge && (
-                    <Badge variant={activeView === item.id ? "default" : "secondary"} className="text-xs font-medium">
+                    <Badge variant={activeView === item.id ? "default" : "secondary"} className="text-[10px] sm:text-xs font-medium">
                       {item.badge}
                     </Badge>
                   )}
                   <div
                     className={cn(
                       "w-2 h-2 rounded-full transition-all duration-200",
-                      activeView === item.id ? "bg-blue-500 scale-100" : "bg-transparent scale-0",
+                      activeView === item.id ? "bg-green-500 scale-100" : "bg-transparent scale-0",
                     )}
                   />
                 </div>
@@ -228,30 +228,30 @@ export function MobileNavigation({ isOpen, activeView, onViewChange, onClose }: 
           </div>
 
           {/* Settings Section */}
-          <div className="border-t border-gray-100 p-4">
+          <div className="border-t border-gray-100 p-3 sm:p-4">
             <button
               className={cn(
-                "w-full flex items-center space-x-4 p-4 rounded-xl text-left transition-all duration-200",
+                "w-full flex items-center space-x-3 sm:space-x-4 p-3 sm:p-4 rounded-xl text-left transition-all duration-200",
                 "hover:bg-gray-50 active:bg-gray-100 active:scale-[0.98]",
-                "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2",
+                "focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2",
                 "border-2 border-transparent hover:border-gray-200",
               )}
             >
-              <div className="flex items-center justify-center w-10 h-10 rounded-lg bg-gray-100 text-gray-600">
-                <Settings className="h-5 w-5" />
+              <div className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gray-100 text-gray-600 shrink-0">
+                <Settings className="h-4 w-4 sm:h-5 sm:w-5" />
               </div>
-              <div className="flex-1">
-                <div className="font-semibold text-base">Settings</div>
-                <div className="text-sm text-gray-500">App preferences</div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-sm sm:text-base truncate">Settings</div>
+                <div className="text-xs sm:text-sm text-gray-500 truncate">App preferences</div>
               </div>
             </button>
           </div>
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-100 p-4 bg-gray-50">
-          <div className="text-center text-xs text-gray-500">
-            <p>© 2024 PresTrack. All rights reserved.</p>
+        <div className="border-t border-gray-100 p-3 sm:p-4 bg-gray-50">
+          <div className="text-center text-[10px] sm:text-xs text-gray-500">
+            <p>© 2024 HealthyMother. All rights reserved.</p>
           </div>
         </div>
       </div>

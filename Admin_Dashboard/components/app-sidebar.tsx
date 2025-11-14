@@ -132,22 +132,22 @@ export function AppSidebar({ activeView, onViewChange, patientCount }: AppSideba
   ];
 
   return (
-    <Sidebar className="border-r border-gray-200 bg-white">
-      <SidebarHeader className="p-4 bg-maternal-green-600">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-white/20">
-            <Heart className="h-5 w-5 text-white" />
+    <Sidebar className="border-r border-gray-200 bg-white w-64 lg:w-72">
+      <SidebarHeader className="p-3 sm:p-4 bg-maternal-green-600">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex h-9 w-9 sm:h-10 sm:w-10 items-center justify-center rounded-lg bg-white/20 shrink-0">
+            <Heart className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
           </div>
-          <div>
-            <h2 className="text-base font-semibold text-white">HealthyMother</h2>
-            <p className="text-xs text-white/80">Dashboard</p>
+          <div className="min-w-0">
+            <h2 className="text-sm sm:text-base font-semibold text-white truncate">HealthyMother</h2>
+            <p className="text-[10px] sm:text-xs text-white/80 truncate">Dashboard</p>
           </div>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="px-2 py-4">
+      <SidebarContent className="px-2 py-3 sm:py-4 overflow-y-auto">
         <SidebarGroup>
-          <SidebarGroupLabel className="px-3 text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
+          <SidebarGroupLabel className="px-2 sm:px-3 text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wider mb-2">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -158,23 +158,26 @@ export function AppSidebar({ activeView, onViewChange, patientCount }: AppSideba
                     onClick={() => onViewChange(item.id)}
                     isActive={activeView === item.id}
                     className={`
-                      group w-full justify-start px-3 py-2.5 rounded-lg
+                      group w-full justify-start px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg text-sm sm:text-base
+                      transition-colors duration-150
                       ${activeView === item.id
-                        ? `bg-blue-600 text-white`
-                        : `text-black hover:bg-blue-50`
+                        ? `bg-blue-600 text-white shadow-sm`
+                        : `text-gray-700 hover:bg-blue-50 hover:text-blue-700`
                       }
                     `}
                   >
-                    <div className="flex items-center gap-3 w-full">
-                      <item.icon className={`h-4 w-4 ${activeView === item.id ? 'text-white' : 'text-black'}`} />
-                      <span className={`font-medium text-sm ${activeView === item.id ? 'text-white' : 'text-black'}`}>{item.title}</span>
-                      {item.badge !== undefined && (
+                    <div className="flex items-center gap-2 sm:gap-3 w-full min-w-0">
+                      <item.icon className={`h-4 w-4 sm:h-5 sm:w-5 shrink-0 ${activeView === item.id ? 'text-white' : 'text-gray-600'}`} />
+                      <span className={`font-medium text-sm sm:text-base truncate ${activeView === item.id ? 'text-white' : 'text-gray-700'}`}>
+                        {item.title}
+                      </span>
+                      {item.badge !== undefined && item.badge !== '0' && (
                         <Badge
                           className={`
-                            ml-auto px-2 py-0.5 text-xs font-medium rounded-full
+                            ml-auto px-1.5 sm:px-2 py-0.5 text-[10px] sm:text-xs font-medium rounded-full shrink-0
                             ${activeView === item.id
-                              ? 'bg-white/20 text-white'
-                              : 'bg-blue-500 text-white'
+                              ? 'bg-white/20 text-white border-white/30'
+                              : 'bg-blue-500 text-white border-blue-600'
                             }
                           `}
                         >
@@ -190,18 +193,19 @@ export function AppSidebar({ activeView, onViewChange, patientCount }: AppSideba
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-3 border-t border-gray-200">
+      <SidebarFooter className="p-2 sm:p-3 border-t border-gray-200">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton className="
-              w-full justify-start px-3 py-2.5 rounded-lg
+              w-full justify-start px-2 sm:px-3 py-2 sm:py-2.5 rounded-lg
               text-gray-600 hover:text-gray-800 hover:bg-gray-100
+              transition-colors duration-150
             ">
-              <div className="flex items-center gap-3 w-full">
-                <div className="flex items-center justify-center w-7 h-7 rounded-md bg-gray-500 text-white">
-                  <Settings className="h-4 w-4" />
+              <div className="flex items-center gap-2 sm:gap-3 w-full">
+                <div className="flex items-center justify-center w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-gray-500 text-white shrink-0">
+                  <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
                 </div>
-                <span className="font-medium text-sm">Settings</span>
+                <span className="font-medium text-sm sm:text-base truncate">Settings</span>
               </div>
             </SidebarMenuButton>
           </SidebarMenuItem>

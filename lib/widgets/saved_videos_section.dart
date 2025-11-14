@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 
-// Widget for a single video placeholder
 class VideoPlaceholder extends StatelessWidget {
   // You might want to pass video data here later (e.g., thumbnail, video ID)
   // final String thumbnailUrl;
   // final String videoId;
   final VoidCallback? onTap; // Add onTap callback
 
-  const VideoPlaceholder({Key? key, this.onTap}) : super(key: key);
+  const VideoPlaceholder({super.key, this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -36,7 +35,6 @@ class VideoPlaceholder extends StatelessWidget {
   }
 }
 
-// Widget for the grid of saved videos
 class SavedVideosSection extends StatelessWidget {
   // Placeholder list of videos (just using null for placeholders)
   final List<dynamic> videos = List.generate(
@@ -44,7 +42,7 @@ class SavedVideosSection extends StatelessWidget {
     (index) => null,
   ); // Example: 4 placeholder videos
 
-  SavedVideosSection({Key? key}) : super(key: key);
+  SavedVideosSection({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -65,7 +63,7 @@ class SavedVideosSection extends StatelessWidget {
             ),
           ),
         ),
-        Container(
+        SizedBox(
           height: 150, // Set a height for the horizontal list
           child: ListView.builder(
             scrollDirection: Axis.horizontal, // Set to horizontal scrolling

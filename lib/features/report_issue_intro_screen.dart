@@ -3,7 +3,7 @@ import '../widgets/shared_app_bar.dart';
 import 'report_issue_screen.dart';
 
 class ReportIssueIntroScreen extends StatelessWidget {
-  const ReportIssueIntroScreen({Key? key}) : super(key: key);
+  const ReportIssueIntroScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -33,10 +33,8 @@ class ReportIssueIntroScreen extends StatelessWidget {
                     const SizedBox(height: 24),
                     Text(
                       'Your Voice Matters',
-                      style:
-                          Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -157,10 +155,7 @@ class ReportIssueIntroScreen extends StatelessWidget {
                   },
                   child: Text(
                     'Go Back',
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 16,
-                    ),
+                    style: TextStyle(color: Colors.grey[600], fontSize: 16),
                   ),
                 ),
               ],
@@ -186,11 +181,7 @@ class ReportIssueIntroScreen extends StatelessWidget {
             color: const Color(0xFF7C4DFF).withOpacity(0.1),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            icon,
-            color: const Color(0xFF7C4DFF),
-            size: 24,
-          ),
+          child: Icon(icon, color: const Color(0xFF7C4DFF), size: 24),
         ),
         const SizedBox(width: 16),
         Expanded(
@@ -207,10 +198,7 @@ class ReportIssueIntroScreen extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 description,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
             ],
           ),

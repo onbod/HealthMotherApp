@@ -7,7 +7,7 @@ class ChatService {
 
   // Create a new chat between user and health worker
   Future<String> createChat(String userId, String healthWorkerId) async {
-    final chatId = '${userId}_${healthWorkerId}';
+    final chatId = '${userId}_$healthWorkerId';
 
     // Create the chat document
     await _firestore.collection('chats').doc(chatId).set({
@@ -50,13 +50,14 @@ class ChatService {
   // Mark messages as read
   Future<void> markMessagesAsRead(String chatId, String userId) async {
     try {
-      final messagesQuery = await _firestore
-          .collection('chats')
-          .doc(chatId)
-          .collection('messages')
-          .where('receiverId', isEqualTo: userId)
-          .where('status', isEqualTo: 'sent')
-          .get();
+      final messagesQuery =
+          await _firestore
+              .collection('chats')
+              .doc(chatId)
+              .collection('messages')
+              .where('receiverId', isEqualTo: userId)
+              .where('status', isEqualTo: 'sent')
+              .get();
 
       if (messagesQuery.docs.isNotEmpty) {
         final batch = _firestore.batch();

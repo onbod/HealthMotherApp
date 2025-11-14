@@ -14,7 +14,7 @@ A comprehensive maternal health system with FHIR-compliant backend, Next.js admi
 
 This project consists of three main components:
 
-### 🏥 **FHIR Backend** (`health-fhir-backend/`)
+### FHIR Backend (`health-fhir-backend/`)
 - **Node.js/Express.js** server with PostgreSQL database
 - **FHIR R4 (4.0.1)** compliant REST API
 - **SMART on FHIR** authentication and authorization
@@ -24,7 +24,7 @@ This project consists of three main components:
 - **Decision support alerts** based on ANC visit data
 - **FHIR CapabilityStatement** and standard endpoints
 
-### 🖥️ **Admin Dashboard** (`healthapp/`)
+### Admin Dashboard (`healthapp/`)
 - **Next.js 14** with TypeScript
 - **Tailwind CSS** for modern UI
 - **Admin authentication** with username/email and password
@@ -33,7 +33,7 @@ This project consists of three main components:
 - **Real-time** dashboard with metrics and indicators
 - **Responsive design** for desktop and mobile
 
-### 📱 **Mobile App** (`lib/`)
+### Mobile App (`lib/`)
 - **Flutter** mobile application
 - **Patient-focused** interface
 - **Pregnancy tracking** and monitoring
@@ -42,7 +42,7 @@ This project consists of three main components:
 - **Emergency contacts** and reporting
 - **AI chatbot** for pregnancy-related questions
 
-### 🖥️ **Admin Dashboard** (`Admin_Dashboard/`)
+### Admin Dashboard (`Admin_Dashboard/`)
 - **Next.js 14** with TypeScript and modern React
 - **Tailwind CSS** and **Shadcn/UI** for beautiful, responsive design
 - **Role-based authentication** (App Admin and Clinician roles)
@@ -59,34 +59,34 @@ This project consists of three main components:
 
 ## Features
 
-### 🔐 **Authentication & Security**
+### Authentication & Security
 - **Patient Login**: OTP verification via phone number or name/client number
 - **Admin Login**: Username/email and password authentication
 - **JWT Tokens**: Secure session management
 - **Role-based Access**: Patient and admin role separation
 - **PIN Code**: 4-digit security for mobile app users
 
-### 🏠 **Core Features**
+### Core Features
 
-#### **Mobile App Features**
-- 📅 **Pregnancy Tracker** – Monitor pregnancy progress and milestones
-- 🧾 **Visit Records** – View past and upcoming antenatal visits
-- 💊 **Medication Reminders** – Set and receive reminders for prescribed medications
-- 📚 **Resource Hub** – Access health tips, nutrition guidance, and videos
-- ☎️ **Emergency Contacts** – Quick access to emergency numbers
-- 📝 **Report Issues** – Submit reports or feedback directly
-- 🔔 **Smart Notifications** – Timely reminders for visits and medications
-- 🤖 **AI Chatbot** – Real-time pregnancy-related Q&A
+#### Mobile App Features
+- Pregnancy Tracker - Monitor pregnancy progress and milestones
+- Visit Records - View past and upcoming antenatal visits
+- Medication Reminders - Set and receive reminders for prescribed medications
+- Resource Hub - Access health tips, nutrition guidance, and videos
+- Emergency Contacts - Quick access to emergency numbers
+- Report Issues - Submit reports or feedback directly
+- Smart Notifications - Timely reminders for visits and medications
+- AI Chatbot - Real-time pregnancy-related Q&A
 
-#### **Admin Dashboard Features**
-- 👥 **Patient Management** – View and manage patient records
-- 📊 **Analytics Dashboard** – Real-time metrics and indicators
-- 🏥 **Facility Management** – Manage healthcare facilities
-- 📈 **ANC Indicators** – Track antenatal care metrics
-- 🔍 **FHIR Resource Browser** – Search and view FHIR resources
-- 📋 **Reports & Analytics** – Comprehensive reporting tools
+#### Admin Dashboard Features
+- Patient Management - View and manage patient records
+- Analytics Dashboard - Real-time metrics and indicators
+- Facility Management - Manage healthcare facilities
+- ANC Indicators - Track antenatal care metrics
+- FHIR Resource Browser - Search and view FHIR resources
+- Reports & Analytics - Comprehensive reporting tools
 
-### 🏥 **Healthcare Standards Compliance**
+### Healthcare Standards Compliance
 
 #### **FHIR (Fast Healthcare Interoperability Resources)**
 - **R4 (4.0.1)** compliant REST API
@@ -110,7 +110,7 @@ This project consists of three main components:
 - **Preventive care** guidelines
 - **Scheduling logic** (ANC.S.01-05)
 
-### 📊 **Data Management**
+### Data Management
 - **PostgreSQL** database with JSONB support
 - **Relational tables** for structured data
 - **FHIR resources** stored as JSONB
@@ -119,6 +119,8 @@ This project consists of three main components:
 - **Backup and recovery** procedures
 
 ## Getting Started
+
+> **📖 For detailed setup and testing instructions, see [USER_MANUAL.md](./USER_MANUAL.md)**
 
 ### Prerequisites
 
@@ -156,9 +158,11 @@ This project consists of three main components:
       ```
     
     **For Railway Deployment:**
-    - The backend is deployed on Railway at: `https://health-fhir-backend-production-6ae1.up.railway.app`
+    - The backend is ready for Railway deployment
+    - See `health-fhir-backend/RAILWAY_DEPLOYMENT.md` for detailed deployment instructions
     - Database connection is automatically configured via Railway environment variables
-    - No local setup required for production use
+    - All 105 API endpoints are verified and working
+    - Health check endpoint: `/healthz` (configured in `railway.json`)
     
     **Run the backend locally:**
     ```sh
@@ -234,21 +238,21 @@ The database schema is structured around the maternal health journey, from pregn
 
 #### **Alignment with Healthcare Standards**
 
-**🏥 FHIR (Fast Healthcare Interoperability Resources)**
+**FHIR (Fast Healthcare Interoperability Resources)**
 - **Resource Storage**: `fhir_resources` table stores complete FHIR resources as JSONB
 - **HumanName Format**: Patient names stored in FHIR HumanName format with `use`, `given`, and `family` fields
 - **Address Format**: Patient addresses follow FHIR Address structure
 - **Resource Types**: Supports Patient, Encounter, Observation, Procedure resources
 - **Search Capability**: FHIR-compliant search with name and patient parameters
 
-**🔐 SMART on FHIR**
+**SMART on FHIR**
 - **Authentication**: JWT token-based authentication for patients and administrators
 - **Authorization**: Role-based access control (patient vs admin)
 - **OAuth 2.0**: Compatible with SMART launch sequences
 - **Scope Management**: Supports different permission levels
 - **Session Management**: Secure token storage and validation
 
-**📊 DAK (District Health Information System)**
+**DAK (District Health Information System)**
 - **ANC Indicators**: Tracks all 14 ANC indicators (ANC.DT.01-14)
 - **Decision Support**: Implements ANC decision support logic (ANC.DT.01-14)
 - **Risk Assessment**: Algorithms for maternal and fetal risk assessment
@@ -430,55 +434,55 @@ CREATE TABLE chat_message (
    );
    ```
 
-## 🖥️ Admin Dashboard
+## Admin Dashboard
 
 ### **Overview**
 The Admin Dashboard is a modern, responsive web application built with **Next.js 14**, **TypeScript**, and **Tailwind CSS**. It provides healthcare administrators and clinicians with comprehensive tools for managing maternal health data, patient records, and healthcare operations.
 
 ### **Key Features**
 
-#### **🔐 Authentication & Roles**
+#### Authentication & Roles
 - **Role-based Access**: App Admin (full access) and Clinician (limited access)
 - **Secure Login**: Username/email and password authentication
 - **Session Management**: Persistent login sessions with localStorage
 - **Permission Control**: Different features available based on user role
 
-#### **📊 Dashboard Analytics**
+#### Dashboard Analytics
 - **Real-time Metrics**: Patient counts, visit statistics, and key indicators
 - **Trend Analysis**: Visual charts showing maternal health trends
 - **Upcoming Due Dates**: Automated alerts for patient follow-ups
 - **Performance Indicators**: ANC metrics and quality improvement data
 
-#### **👥 Patient Management**
+#### Patient Management
 - **Patient Directory**: Browse and search patient records
 - **Detailed Profiles**: Comprehensive patient information and medical history
 - **Visit Records**: Complete ANC visit history and documentation
 - **Risk Assessment**: Automated risk scoring and alerts
 
-#### **🏥 Referral System**
+#### Referral System
 - **Referral Tracking**: Manage patient referrals and follow-ups
 - **Status Updates**: Track referral progress and outcomes
 - **Communication Tools**: Integrated messaging for referral coordination
 
-#### **🔔 Notification Center**
+#### Notification Center
 - **Patient Notifications**: Create and schedule patient reminders
 - **Bulk Messaging**: Send notifications to multiple patients
 - **Template System**: Pre-built notification templates
 - **Delivery Tracking**: Monitor notification delivery status
 
-#### **📚 Health Education Hub**
+#### Health Education Hub
 - **Content Management**: Create and edit health tips and nutrition advice
 - **Video Library**: Manage educational videos and resources
 - **Patient Distribution**: Send educational content to patients
 - **Content Analytics**: Track engagement with educational materials
 
-#### **📋 Reports & Compliance**
+#### Reports & Compliance
 - **Whistleblower Reports**: Review and respond to anonymous reports
 - **Filtering Tools**: Advanced search and filter capabilities
 - **Response Management**: Track report responses and resolutions
 - **Audit Trail**: Complete history of report handling
 
-#### **🗄️ Database Management**
+#### Database Management
 - **Connection Status**: Real-time database connectivity monitoring
 - **Sync Indicators**: Visual status of data synchronization
 - **Configuration Tools**: Database connection settings management
@@ -544,7 +548,9 @@ The Admin Dashboard is a modern, responsive web application built with **Next.js
 
 ## API Endpoints
 
-**Base URL**: `https://health-fhir-backend-production-6ae1.up.railway.app`
+**Base URL**: `https://your-railway-backend.railway.app` (after deployment)
+
+**Note**: Replace with your actual Railway backend URL after deployment. See `health-fhir-backend/RAILWAY_DEPLOYMENT.md` for deployment instructions.
 
 ### Authentication
 - `POST /login/request-otp` - Request OTP for patient login
@@ -574,29 +580,38 @@ The Admin Dashboard is a modern, responsive web application built with **Next.js
 
 ## Testing
 
-### Production Environment
-- **Backend URL**: `https://health-fhir-backend-production-6ae1.up.railway.app`
-- **Database**: PostgreSQL hosted on Railway
-- **SSL**: HTTPS enabled
+> **📖 For comprehensive testing instructions and test credentials, see [USER_MANUAL.md](./USER_MANUAL.md)**
 
-### Test Patient Data
+### Production Environment
+- **Backend URL**: Deploy to Railway (see `health-fhir-backend/RAILWAY_DEPLOYMENT.md`)
+- **Database**: PostgreSQL hosted on Railway (automatic via `DATABASE_URL`)
+- **SSL**: HTTPS enabled by default on Railway
+- **Health Check**: `/healthz` endpoint for Railway monitoring
+- **Code Status**: All 105 endpoints verified, syntax errors fixed
+
+### Quick Test Credentials
+
+**Test Patient:**
 - **ClientNumber:** `ANC-2024-0125`
 - **Name:** `Mariama Sesay`
-- **Phone:** `088054388`
-- **OTP:** `123456` (for testing)
+- **Phone:** `088054388` or `+23288054388`
+- **OTP:** `123456` (for testing only)
 
-### Test Admin Data
-- **Username:** `admin`
-- **Email:** `ibrahimswaray430@gmail.com`
+**Test Admin:**
+- **Email/Username:** `ibrahimswaray430@gmail.com`
 - **Password:** `dauda2019`
+
+> **Note:** For detailed testing procedures, troubleshooting, and additional test accounts, refer to [USER_MANUAL.md](./USER_MANUAL.md)
 
 ## Development
 
 ### Backend Development
-- **Port:** 3000
-- **CORS:** Enabled for `http://localhost:3001`
-- **Logging:** Console logging for debugging
-- **Error Handling:** FHIR OperationOutcome format
+- **Port:** 3000 (or `process.env.PORT` on Railway)
+- **CORS:** Enabled for frontend domains (localhost, Vercel deployments)
+- **Logging:** Optimized console logging (skips frequent polling endpoints)
+- **Error Handling:** FHIR OperationOutcome format for FHIR endpoints
+- **Health Checks:** `/healthz` for Railway, `/health` for general monitoring
+- **Database:** Automatic Railway `DATABASE_URL` detection, local fallback
 
 ### Frontend Development
 - **Port:** 3001
@@ -614,33 +629,41 @@ The Admin Dashboard is a modern, responsive web application built with **Next.js
 
 ### Backend Deployment (Railway)
 
-The backend is deployed on **Railway** for production use:
+The backend is **ready for Railway deployment** with all code cleaned and verified:
 
 #### **Railway Configuration**
-- **URL**: `https://health-fhir-backend-production-6ae1.up.railway.app`
-- **Database**: PostgreSQL hosted on Railway
-- **Environment Variables**: Automatically managed by Railway
+- **Health Check**: `/healthz` endpoint configured in `railway.json`
+- **Database**: PostgreSQL hosted on Railway (automatic `DATABASE_URL`)
+- **Environment Variables**: `SECRET_KEY` required (auto-generated recommended)
 - **SSL**: HTTPS enabled by default
 - **Auto-scaling**: Handled by Railway platform
+- **Code Quality**: All syntax errors fixed, 105 endpoints verified
 
 #### **Railway Setup Steps**
 1. **Connect Repository**: Link your GitHub repository to Railway
-2. **Configure Environment Variables**:
+2. **Select Directory**: Choose `health-fhir-backend` as the root directory
+3. **Add PostgreSQL**: Railway → New → Database → PostgreSQL (automatic `DATABASE_URL`)
+4. **Configure Environment Variables**:
    ```env
-   DATABASE_URL=postgresql://railway_user:password@railway_host:5432/railway_db
-   JWT_SECRET=your_jwt_secret_key
-   NODE_ENV=production
+   SECRET_KEY=your_jwt_secret_key  # Generate: openssl rand -base64 32
+   NODE_ENV=production  # Optional, Railway sets this automatically
    ```
-3. **Deploy**: Railway automatically deploys on git push
-4. **Database**: Railway provides PostgreSQL database
-5. **Domain**: Custom domain can be configured
+5. **Deploy Database Schema**: Run `database/anc_register_fhir_dak_schema.sql` on Railway PostgreSQL
+6. **Deploy**: Railway automatically deploys on git push
+7. **Verify**: Test endpoints at `https://your-app.railway.app/healthz`
+
+**For detailed instructions, see**: `health-fhir-backend/RAILWAY_DEPLOYMENT.md`
 
 #### **Local Development Deployment**
+For local production deployment (not recommended, use Railway instead):
 1. Set up PostgreSQL on production server
-2. Configure environment variables
+2. Configure environment variables (`DATABASE_URL`, `SECRET_KEY`)
 3. Use PM2 or similar for process management
-4. Set up SSL certificates
+4. Set up SSL certificates (Let's Encrypt recommended)
 5. Configure firewall rules
+6. Run database schema: `database/anc_register_fhir_dak_schema.sql`
+
+**Recommended**: Use Railway for production deployment (see `health-fhir-backend/RAILWAY_DEPLOYMENT.md`)
 
 ### Frontend Deployment
 1. Build the Next.js app: `npm run build`

@@ -4,14 +4,14 @@ A comprehensive FHIR-compliant backend for maternal and child health application
 
 ## Features
 
-- 🔐 JWT-based authentication for patients and admins
-- 📊 FHIR R4 compliant API endpoints
-- 🏥 Complete maternal health tracking (ANC, delivery, postnatal)
-- 💬 Real-time chat system for health workers
-- 📱 Mobile-optimized API responses
-- 🔔 Notification system
-- 📈 Health indicators and reporting
-- 🚀 Railway-ready deployment
+- JWT-based authentication for patients and admins
+- FHIR R4 compliant API endpoints
+- Complete maternal health tracking (ANC, delivery, postnatal)
+- Real-time chat system for health workers
+- Mobile-optimized API responses
+- Notification system
+- Health indicators and reporting
+- Railway-ready deployment
 
 ## Quick Start
 
@@ -26,11 +26,22 @@ A comprehensive FHIR-compliant backend for maternal and child health application
 
 ### Railway Deployment
 
-1. Follow the [Railway Deployment Guide](docs/RAILWAY_DEPLOYMENT.md)
-2. Deploy to Railway with one click
-3. Set up PostgreSQL database on Railway
-4. Configure environment variables
-5. Run the database schema
+The backend is **fully prepared** for Railway deployment:
+
+1. **Code Quality**: All syntax errors fixed, 105 API endpoints verified
+2. **Configuration**: `railway.json` configured with health check at `/healthz`
+3. **Database**: Automatic `DATABASE_URL` handling for Railway PostgreSQL
+4. **Environment**: Production-ready error handling and logging
+
+**Quick Deployment Steps:**
+1. Push code to GitHub
+2. Connect repository to Railway
+3. Add PostgreSQL service (automatic `DATABASE_URL`)
+4. Set `SECRET_KEY` environment variable
+5. Deploy database schema: `database/anc_register_fhir_dak_schema.sql`
+6. Verify: Test `/healthz` endpoint
+
+**For detailed instructions, see**: [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md)
 
 ## API Endpoints
 
@@ -59,29 +70,40 @@ A comprehensive FHIR-compliant backend for maternal and child health application
 - `DELETE /fhir/:resourceType/:id` - Delete FHIR resource
 
 ### Health Monitoring
-- `GET /healthz` - Railway health check
+- `GET /healthz` - Railway health check (no database required)
 - `GET /health` - Application health check
+- `GET /` - Root endpoint with API status
 - `GET /db-test` - Database connection test
+
+### Reports & Issues
+- `POST /report` - Submit report (supports `image_urls` array)
+- `GET /report` - List all reports
+- `GET /reports/:id` - Get specific report
+
+### DAK & Decision Support
+- `GET /dak/decision-support/:patientId` - DAK decision support alerts
+- `GET /dak/scheduling/:patientId` - DAK scheduling recommendations
+- `GET /dak/quality-metrics` - DAK quality indicators
+- `GET /indicators/anc` - ANC indicator metrics
 
 ## Project Structure
 
 ```
 health-fhir-backend/
-├── database/                    # Database files
+├── database/                           # Database files
 │   ├── anc_register_fhir_dak_schema.sql  # Main database schema
-│   ├── demo_data.sql           # Demo data for testing
-│   └── anc_register_mapping_table.csv    # DAK indicator mappings
-├── docs/                       # Documentation
-│   ├── anc_register_schema_overview.txt  # Schema documentation
-│   └── RAILWAY_DEPLOYMENT.md   # Deployment guide
-├── scripts/                    # Utility scripts
-│   └── deploy-database.ps1     # Database deployment script
-├── index.js                    # Main application file
-├── db.js                       # Database connection
-├── fhir-compliance.js          # FHIR compliance utilities
-├── dak-decision-support.js     # DAK decision support
-├── package.json                # Dependencies and scripts
-└── README.md                   # This file
+│   ├── add_report_images.sql          # Image support migration
+│   └── migrations/                    # Database migrations
+│       ├── 2025-10-20_add_comm_tables.sql
+│       └── add_notifications_table.sql
+├── index.js                           # Main application (5,524 lines, 105 endpoints)
+├── db.js                              # Database connection (Railway-ready)
+├── fhir-compliance.js                # FHIR R4 compliance utilities
+├── dak-decision-support.js            # DAK decision support logic
+├── package.json                       # Dependencies and scripts
+├── railway.json                       # Railway deployment configuration
+├── RAILWAY_DEPLOYMENT.md              # Complete Railway deployment guide
+└── README.md                          # This file
 ```
 
 ## Database Schema
@@ -98,20 +120,55 @@ The application uses PostgreSQL with the following main tables:
 
 ## Environment Variables
 
+### Required for Railway
 ```bash
 DATABASE_URL=postgresql://username:password@hostname:port/database_name?sslmode=require
+# Automatically provided by Railway when PostgreSQL service is added
+
 SECRET_KEY=your_jwt_secret_key
-NODE_ENV=production
-PORT=3000
+# Generate a strong secret: openssl rand -base64 32
+# Required for JWT token signing
 ```
+
+### Optional
+```bash
+NODE_ENV=production
+# Railway sets this automatically, but can be overridden
+
+PORT=3000
+# Railway sets this automatically via process.env.PORT
+```
+
+### Local Development
+If `DATABASE_URL` is not set, the backend falls back to local PostgreSQL:
+- Host: `localhost`
+- Port: `5432`
+- Database: `health_fhir`
+- User: `postgres`
+- Password: `password`
+- SSL: `false`
+
+**Note**: For production, always use Railway's `DATABASE_URL` with SSL enabled.
 
 ## Testing Deployment
 
-After deployment, run the verification script:
+After deployment, verify the endpoints:
 
 ```bash
-node verify-deployment.js https://your-railway-app.railway.app
+# Health check (Railway uses this for monitoring)
+curl https://your-railway-app.railway.app/healthz
+
+# Root endpoint
+curl https://your-railway-app.railway.app/
+
+# Database connection test
+curl https://your-railway-app.railway.app/db-test
+
+# FHIR metadata
+curl https://your-railway-app.railway.app/metadata
 ```
+
+All endpoints should return valid JSON responses. See [RAILWAY_DEPLOYMENT.md](./RAILWAY_DEPLOYMENT.md) for complete verification steps.
 
 ## Technology Stack
 

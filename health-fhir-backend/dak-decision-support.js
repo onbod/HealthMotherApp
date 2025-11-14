@@ -230,30 +230,58 @@ function generateDAKDecisionSupportAlerts(pregnancy, ancVisits) {
 
   ancVisits.forEach(visit => {
     // ANC.DT.01: Danger Signs Assessment
-    if (visit.danger_signs && Array.isArray(visit.danger_signs) && visit.danger_signs.length > 0) {
-      visit.danger_signs.forEach(sign => {
+    if (visit.danger_signs_present === true) {
+      // Parse danger signs list if it's a string, or use as array if already parsed
+      let dangerSigns = [];
+      if (visit.danger_signs_list) {
+        if (typeof visit.danger_signs_list === 'string') {
+          try {
+            dangerSigns = JSON.parse(visit.danger_signs_list);
+          } catch (e) {
+            // If not JSON, treat as comma-separated string
+            dangerSigns = visit.danger_signs_list.split(',').map(s => s.trim());
+          }
+        } else if (Array.isArray(visit.danger_signs_list)) {
+          dangerSigns = visit.danger_signs_list;
+        }
+      }
+      
+      if (dangerSigns.length > 0) {
+        dangerSigns.forEach(sign => {
+          alerts.push({
+            code: `DAK.ANC.DT.01.${sign.toUpperCase().replace(/\s+/g, '_')}`,
+            message: `Danger sign detected: ${sign} - Immediate referral required`,
+            priority: 'high',
+            action: 'immediate_referral',
+            decisionPoint: 'ANC.DT.01',
+            visitId: visit.anc_visit_id,
+            visitNumber: visit.visit_number
+          });
+        });
+      } else {
+        // If danger signs present but list is empty, still alert
         alerts.push({
-          code: `DAK.ANC.DT.01.${sign.toUpperCase()}`,
-          message: `Danger sign detected: ${sign} - Immediate referral required`,
+          code: 'DAK.ANC.DT.01.DANGER_SIGNS',
+          message: 'Danger signs detected - Immediate referral required',
           priority: 'high',
           action: 'immediate_referral',
           decisionPoint: 'ANC.DT.01',
-          visitId: visit.id,
+          visitId: visit.anc_visit_id,
           visitNumber: visit.visit_number
         });
-      });
+      }
     }
 
     // ANC.DT.02: Blood Pressure Assessment
-    if (visit.systolic_bp && visit.diastolic_bp) {
-      if (visit.systolic_bp >= 140 || visit.diastolic_bp >= 90) {
+    if (visit.blood_pressure_systolic && visit.blood_pressure_diastolic) {
+      if (visit.blood_pressure_systolic >= 140 || visit.blood_pressure_diastolic >= 90) {
         alerts.push({
           code: 'DAK.ANC.DT.02.HYPERTENSION',
-          message: `High blood pressure detected (${visit.systolic_bp}/${visit.diastolic_bp}) - Pre-eclampsia risk`,
+          message: `High blood pressure detected (${visit.blood_pressure_systolic}/${visit.blood_pressure_diastolic}) - Pre-eclampsia risk`,
           priority: 'high',
           action: 'referral_if_high',
           decisionPoint: 'ANC.DT.02',
-          visitId: visit.id,
+          visitId: visit.anc_visit_id,
           visitNumber: visit.visit_number
         });
       }
@@ -267,150 +295,156 @@ function generateDAKDecisionSupportAlerts(pregnancy, ancVisits) {
         priority: 'high',
         action: 'referral_if_positive',
         decisionPoint: 'ANC.DT.03',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
 
     // ANC.DT.04: Anemia Screening
-    if (visit.haemoglobin && visit.haemoglobin < 11.0) {
+    if (visit.hemoglobin_gdl && visit.hemoglobin_gdl < 11.0) {
       alerts.push({
         code: 'DAK.ANC.DT.04.ANEMIA',
-        message: `Anemia detected (Hb: ${visit.haemoglobin}g/dL) - Iron supplementation needed`,
+        message: `Anemia detected (Hb: ${visit.hemoglobin_gdl}g/dL) - Iron supplementation needed`,
         priority: 'medium',
         action: 'iron_supplementation',
         decisionPoint: 'ANC.DT.04',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
 
     // ANC.DT.05: HIV Testing
-    if (!visit.hiv_status || visit.hiv_status === 'not_tested') {
+    if (!visit.hiv_test_done || (visit.hiv_test_result && visit.hiv_test_result === 'pending')) {
       alerts.push({
         code: 'DAK.ANC.DT.05.HIV_NOT_TESTED',
         message: 'HIV testing not completed - Offer testing and counseling',
         priority: 'high',
         action: 'counseling_and_testing',
         decisionPoint: 'ANC.DT.05',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
 
     // ANC.DT.06: Syphilis Screening
-    if (!visit.syphilis_status || visit.syphilis_status === 'not_tested') {
+    if (!visit.syphilis_test_done || (visit.syphilis_test_result && visit.syphilis_test_result === 'pending')) {
       alerts.push({
         code: 'DAK.ANC.DT.06.SYPHILIS_NOT_TESTED',
         message: 'Syphilis screening not completed - Offer screening',
         priority: 'high',
         action: 'treatment_if_positive',
         decisionPoint: 'ANC.DT.06',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
 
     // ANC.DT.07: Malaria Prevention
-    if (visit.gestational_age_weeks >= 13 && (!visit.iptp_doses || visit.iptp_doses < 3)) {
+    const gestationWeeks = visit.gestation_weeks || 0;
+    if (gestationWeeks >= 13 && !visit.malaria_prophylaxis_given) {
       alerts.push({
         code: 'DAK.ANC.DT.07.MALARIA_PREVENTION',
         message: 'Malaria prevention incomplete - Provide IPTp prophylaxis',
         priority: 'medium',
         action: 'iptp_prophylaxis',
         decisionPoint: 'ANC.DT.07',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
 
     // ANC.DT.08: Tetanus Immunization
-    if (!visit.tetanus_doses || visit.tetanus_doses < 2) {
+    if (!visit.tetanus_toxoid_given || !visit.tetanus_toxoid_dose || visit.tetanus_toxoid_dose < 2) {
       alerts.push({
         code: 'DAK.ANC.DT.08.TETANUS_INCOMPLETE',
         message: 'Tetanus immunization incomplete - Provide vaccination',
         priority: 'medium',
         action: 'vaccination',
         decisionPoint: 'ANC.DT.08',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
 
     // ANC.DT.09: Iron Supplementation
-    if (!visit.iron_supplementation || visit.iron_supplementation === false) {
+    if (!visit.iron_supplement_given || visit.iron_supplement_given === false) {
       alerts.push({
         code: 'DAK.ANC.DT.09.IRON_SUPPLEMENTATION',
         message: 'Iron supplementation not provided - Provide iron and folic acid',
         priority: 'medium',
         action: 'supplementation',
         decisionPoint: 'ANC.DT.09',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
 
     // ANC.DT.10: Birth Preparedness
-    if (!visit.birth_preparedness_plan) {
+    // Note: birth_preparedness_plan field may not exist in schema, checking plan_of_care instead
+    if (!visit.plan_of_care || (visit.plan_of_care && !visit.plan_of_care.toLowerCase().includes('birth'))) {
       alerts.push({
         code: 'DAK.ANC.DT.10.BIRTH_PREPAREDNESS',
         message: 'Birth preparedness planning not completed - Provide counseling',
         priority: 'medium',
         action: 'counseling',
         decisionPoint: 'ANC.DT.10',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
 
     // ANC.DT.11: Emergency Planning
-    if (!visit.emergency_plan) {
+    // Note: emergency_plan field may not exist in schema, checking plan_of_care instead
+    if (!visit.plan_of_care || (visit.plan_of_care && !visit.plan_of_care.toLowerCase().includes('emergency'))) {
       alerts.push({
         code: 'DAK.ANC.DT.11.EMERGENCY_PLANNING',
         message: 'Emergency plan not developed - Develop emergency plan',
         priority: 'medium',
         action: 'planning',
         decisionPoint: 'ANC.DT.11',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
 
     // ANC.DT.12: Postpartum Care Planning
-    if (!visit.postpartum_plan) {
+    // Note: postpartum_plan field may not exist in schema, checking plan_of_care instead
+    if (!visit.plan_of_care || (visit.plan_of_care && !visit.plan_of_care.toLowerCase().includes('postpartum'))) {
       alerts.push({
         code: 'DAK.ANC.DT.12.POSTPARTUM_PLANNING',
         message: 'Postpartum care planning not completed - Plan for postpartum care',
         priority: 'low',
         action: 'planning',
         decisionPoint: 'ANC.DT.12',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
 
     // ANC.DT.13: Family Planning Counseling
-    if (!visit.family_planning_counseling) {
+    // Note: family_planning_counseling field may not exist in schema, checking provider_notes instead
+    if (!visit.provider_notes || (visit.provider_notes && !visit.provider_notes.toLowerCase().includes('family planning'))) {
       alerts.push({
         code: 'DAK.ANC.DT.13.FAMILY_PLANNING',
         message: 'Family planning counseling not provided - Provide counseling',
         priority: 'low',
         action: 'counseling',
         decisionPoint: 'ANC.DT.13',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
 
     // ANC.DT.14: Danger Sign Recognition Education
-    if (!visit.danger_sign_education) {
+    // Note: danger_sign_education field may not exist in schema, checking provider_notes instead
+    if (!visit.provider_notes || (visit.provider_notes && !visit.provider_notes.toLowerCase().includes('danger sign'))) {
       alerts.push({
         code: 'DAK.ANC.DT.14.DANGER_SIGN_EDUCATION',
         message: 'Danger sign recognition education not provided - Provide education',
         priority: 'medium',
         action: 'education',
         decisionPoint: 'ANC.DT.14',
-        visitId: visit.id,
+        visitId: visit.anc_visit_id,
         visitNumber: visit.visit_number
       });
     }
@@ -426,7 +460,13 @@ function generateDAKDecisionSupportAlerts(pregnancy, ancVisits) {
  * @returns {Object} Next visit recommendation
  */
 function calculateNextDAKVisit(pregnancy, ancVisits) {
-  const currentGestationalAge = pregnancy.gestational_age_weeks || 0;
+  // Use current_gestation_weeks from pregnancy or calculate from last visit
+  let currentGestationalAge = pregnancy.current_gestation_weeks || 0;
+  if (currentGestationalAge === 0 && ancVisits.length > 0) {
+    const lastVisit = ancVisits[ancVisits.length - 1];
+    currentGestationalAge = lastVisit.gestation_weeks || 0;
+  }
+  
   const visitCount = ancVisits.length;
   const lastVisit = ancVisits[ancVisits.length - 1];
 
@@ -458,8 +498,8 @@ function calculateNextDAKVisit(pregnancy, ancVisits) {
   }
 
   // Calculate next visit date
-  if (nextVisitWeeks && pregnancy.lmp) {
-    const lmpDate = new Date(pregnancy.lmp);
+  if (nextVisitWeeks && pregnancy.lmp_date) {
+    const lmpDate = new Date(pregnancy.lmp_date);
     const nextVisitDateObj = new Date(lmpDate);
     nextVisitDateObj.setDate(lmpDate.getDate() + (nextVisitWeeks * 7));
     nextVisitDate = nextVisitDateObj.toISOString().split('T')[0];
@@ -485,7 +525,10 @@ function calculateDAKIndicators(ancVisits, patients) {
   const indicators = {};
 
   // ANC.IND.01: Early ANC Initiation
-  const earlyVisits = ancVisits.filter(v => v.gestational_age_weeks < 12);
+  const earlyVisits = ancVisits.filter(v => {
+    const gestationWeeks = v.gestation_weeks || 0;
+    return gestationWeeks < 12 && gestationWeeks > 0;
+  });
   indicators['ANC.IND.01'] = {
     name: DAK_INDICATORS['ANC.IND.01'].name,
     value: ancVisits.length > 0 ? (earlyVisits.length / ancVisits.length) * 100 : 0,
@@ -507,7 +550,7 @@ function calculateDAKIndicators(ancVisits, patients) {
   };
 
   // ANC.IND.04: HIV Testing Coverage
-  const hivTested = ancVisits.filter(v => v.hiv_status && v.hiv_status !== 'not_tested');
+  const hivTested = ancVisits.filter(v => v.hiv_test_done === true && v.hiv_test_result && v.hiv_test_result !== 'pending');
   indicators['ANC.IND.04'] = {
     name: DAK_INDICATORS['ANC.IND.04'].name,
     value: ancVisits.length > 0 ? (hivTested.length / ancVisits.length) * 100 : 0,
@@ -518,7 +561,7 @@ function calculateDAKIndicators(ancVisits, patients) {
   };
 
   // ANC.IND.05: Syphilis Screening Coverage
-  const syphilisScreened = ancVisits.filter(v => v.syphilis_status && v.syphilis_status !== 'not_tested');
+  const syphilisScreened = ancVisits.filter(v => v.syphilis_test_done === true && v.syphilis_test_result && v.syphilis_test_result !== 'pending');
   indicators['ANC.IND.05'] = {
     name: DAK_INDICATORS['ANC.IND.05'].name,
     value: ancVisits.length > 0 ? (syphilisScreened.length / ancVisits.length) * 100 : 0,
@@ -529,7 +572,7 @@ function calculateDAKIndicators(ancVisits, patients) {
   };
 
   // ANC.IND.06: Iron Supplementation Coverage
-  const ironSupplemented = ancVisits.filter(v => v.iron_supplementation === true);
+  const ironSupplemented = ancVisits.filter(v => v.iron_supplement_given === true);
   indicators['ANC.IND.06'] = {
     name: DAK_INDICATORS['ANC.IND.06'].name,
     value: ancVisits.length > 0 ? (ironSupplemented.length / ancVisits.length) * 100 : 0,
@@ -540,7 +583,7 @@ function calculateDAKIndicators(ancVisits, patients) {
   };
 
   // ANC.IND.07: Tetanus Immunization Coverage
-  const tetanusImmunized = ancVisits.filter(v => v.tetanus_doses && v.tetanus_doses >= 2);
+  const tetanusImmunized = ancVisits.filter(v => v.tetanus_toxoid_given === true && v.tetanus_toxoid_dose && v.tetanus_toxoid_dose >= 2);
   indicators['ANC.IND.07'] = {
     name: DAK_INDICATORS['ANC.IND.07'].name,
     value: ancVisits.length > 0 ? (tetanusImmunized.length / ancVisits.length) * 100 : 0,

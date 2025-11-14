@@ -1,6 +1,5 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter/foundation.dart' show kIsWeb;
 
 class Video {
   final String id;
@@ -26,8 +25,7 @@ class Video {
 }
 
 class YouTubeService {
-  // TODO: Replace with your YouTube Data API key.
-  // You can get a key from the Google Cloud Platform console.
+  // YouTube Data API key - get from Google Cloud Platform console
   // Make sure to enable the "YouTube Data API v3" for your project.
   static const _apiKey =
       'AIzaSyDZ-Xfj8HUOruFfHbCwHyqnZdc2qRKyrG4'; // IMPORTANT: REPLACE WITH YOUR API KEY

@@ -9,7 +9,7 @@ import '../widgets/chat_history_sidebar.dart';
 import '../widgets/shared_app_bar.dart';
 
 class FirstAidAssistanceScreen extends StatefulWidget {
-  const FirstAidAssistanceScreen({Key? key}) : super(key: key);
+  const FirstAidAssistanceScreen({super.key});
 
   @override
   State<FirstAidAssistanceScreen> createState() =>
@@ -66,30 +66,30 @@ class _FirstAidAssistanceScreenState extends State<FirstAidAssistanceScreen> {
       _isLoading = true;
       _messages.insert(0, userMessage);
       _messages.insert(
-          0,
-          ChatMessage(
-            id: _uuid.v4(),
-            text: 'MamaBot is typing...',
-            isUserMessage: false,
-            timestamp: DateTime.now(),
-            isTyping: true,
-            animate: false,
-          ));
+        0,
+        ChatMessage(
+          id: _uuid.v4(),
+          text: 'MamaBot is typing...',
+          isUserMessage: false,
+          timestamp: DateTime.now(),
+          isTyping: true,
+          animate: false,
+        ),
+      );
     });
     _messageController.clear();
 
-    if (_currentChatId == null) {
-      _currentChatId = _uuid.v4();
-    }
+    _currentChatId ??= _uuid.v4();
 
     await _saveMessage(userMessage);
 
     try {
-      final HttpsCallable callable =
-          FirebaseFunctions.instance.httpsCallable('chatWithOpenRouter');
-      final result = await callable.call<Map<String, dynamic>>(
-        {'message': text},
+      final HttpsCallable callable = FirebaseFunctions.instance.httpsCallable(
+        'chatWithOpenRouter',
       );
+      final result = await callable.call<Map<String, dynamic>>({
+        'message': text,
+      });
       String botResponse;
       if (result.data['error'] != null &&
           result.data['error']['message'] != null) {
@@ -149,7 +149,10 @@ class _FirstAidAssistanceScreenState extends State<FirstAidAssistanceScreen> {
   Future<void> _saveMessage(ChatMessage message) async {
     if (_currentChatId != null) {
       await _chatHistoryService.addMessageToChat(
-          _currentChatId!, message, _messages.first.text);
+        _currentChatId!,
+        message,
+        _messages.first.text,
+      );
     }
   }
 
@@ -157,8 +160,9 @@ class _FirstAidAssistanceScreenState extends State<FirstAidAssistanceScreen> {
     final prefs = await SharedPreferences.getInstance();
     final lastChatId = prefs.getString(_lastChatIdKey);
     if (lastChatId != null) {
-      final chatMessages =
-          await _chatHistoryService.getMessagesForChat(lastChatId);
+      final chatMessages = await _chatHistoryService.getMessagesForChat(
+        lastChatId,
+      );
       if (chatMessages.isNotEmpty) {
         // Sort messages newest to oldest
         chatMessages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
@@ -203,21 +207,26 @@ class _FirstAidAssistanceScreenState extends State<FirstAidAssistanceScreen> {
   void _deleteChat(String chatId) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Delete Chat'),
-        content:
-            const Text('Are you sure you want to delete this chat history?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Delete Chat'),
+            content: const Text(
+              'Are you sure you want to delete this chat history?',
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(false),
+                child: const Text('Cancel'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(true),
+                child: const Text(
+                  'Delete',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
-        ],
-      ),
     );
     if (confirm != true) return;
     await _chatHistoryService.deleteChat(chatId);
@@ -263,25 +272,26 @@ class _FirstAidAssistanceScreenState extends State<FirstAidAssistanceScreen> {
           Column(
             children: [
               Expanded(
-                child: _messages.isEmpty
-                    ? _buildWelcomeMessage()
-                    : ListView.builder(
-                        controller: _scrollController,
-                        padding: const EdgeInsets.all(8.0),
-                        reverse: true,
-                        itemCount: _messages.length,
-                        itemBuilder: (context, index) {
-                          final message = _messages[index];
-                          return ChatMessageWidget(
-                            message: message,
-                            onTypewriterComplete: () {
-                              setState(() {
-                                message.animate = false;
-                              });
-                            },
-                          );
-                        },
-                      ),
+                child:
+                    _messages.isEmpty
+                        ? _buildWelcomeMessage()
+                        : ListView.builder(
+                          controller: _scrollController,
+                          padding: const EdgeInsets.all(8.0),
+                          reverse: true,
+                          itemCount: _messages.length,
+                          itemBuilder: (context, index) {
+                            final message = _messages[index];
+                            return ChatMessageWidget(
+                              message: message,
+                              onTypewriterComplete: () {
+                                setState(() {
+                                  message.animate = false;
+                                });
+                              },
+                            );
+                          },
+                        ),
               ),
               const Divider(height: 1.0),
               SafeArea(
@@ -358,19 +368,23 @@ class _FirstAidAssistanceScreenState extends State<FirstAidAssistanceScreen> {
             ),
           ),
           IconButton(
-            icon: _isLoading
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
+            icon:
+                _isLoading
+                    ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        valueColor:
-                            AlwaysStoppedAnimation<Color>(Colors.deepPurple)),
-                  )
-                : Icon(Icons.send_rounded, color: primaryColor),
-            onPressed: _isLoading
-                ? null
-                : () => _handleSubmitted(_messageController.text),
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.deepPurple,
+                        ),
+                      ),
+                    )
+                    : Icon(Icons.send_rounded, color: primaryColor),
+            onPressed:
+                _isLoading
+                    ? null
+                    : () => _handleSubmitted(_messageController.text),
           ),
         ],
       ),
@@ -382,9 +396,11 @@ class ChatMessageWidget extends StatelessWidget {
   final ChatMessage message;
   final void Function()? onTypewriterComplete;
 
-  const ChatMessageWidget(
-      {Key? key, required this.message, this.onTypewriterComplete})
-      : super(key: key);
+  const ChatMessageWidget({
+    super.key,
+    required this.message,
+    this.onTypewriterComplete,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -406,20 +422,24 @@ class ChatMessageWidget extends StatelessWidget {
         children: [
           Flexible(
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 10.0,
+              ),
               decoration: BoxDecoration(
                 color:
                     isUser ? const Color(0xFF7C4DFF) : const Color(0xFFF0F0F0),
                 borderRadius: BorderRadius.only(
                   topLeft: const Radius.circular(20.0),
                   topRight: const Radius.circular(20.0),
-                  bottomLeft: isUser
-                      ? const Radius.circular(20.0)
-                      : const Radius.circular(0),
-                  bottomRight: isUser
-                      ? const Radius.circular(0)
-                      : const Radius.circular(20.0),
+                  bottomLeft:
+                      isUser
+                          ? const Radius.circular(20.0)
+                          : const Radius.circular(0),
+                  bottomRight:
+                      isUser
+                          ? const Radius.circular(0)
+                          : const Radius.circular(20.0),
                 ),
               ),
               child: Text(
@@ -439,8 +459,7 @@ class ChatMessageWidget extends StatelessWidget {
 
 class _TypingIndicatorBubble extends StatefulWidget {
   final bool isUser;
-  const _TypingIndicatorBubble({Key? key, required this.isUser})
-      : super(key: key);
+  const _TypingIndicatorBubble({super.key, required this.isUser});
 
   @override
   State<_TypingIndicatorBubble> createState() => _TypingIndicatorBubbleState();
@@ -476,8 +495,10 @@ class _TypingIndicatorBubbleState extends State<_TypingIndicatorBubble>
         children: [
           Flexible(
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 10.0,
+              ),
               decoration: BoxDecoration(
                 color: const Color(0xFFF0F0F0),
                 borderRadius: const BorderRadius.only(
@@ -490,12 +511,14 @@ class _TypingIndicatorBubbleState extends State<_TypingIndicatorBubble>
                 animation: _dotCount,
                 builder: (context, child) {
                   String dots = '.' * _dotCount.value;
-                  return Text('MamaBot is typing$dots',
-                      style: const TextStyle(
-                        color: Colors.black87,
-                        fontSize: 16,
-                        fontStyle: FontStyle.italic,
-                      ));
+                  return Text(
+                    'MamaBot is typing$dots',
+                    style: const TextStyle(
+                      color: Colors.black87,
+                      fontSize: 16,
+                      fontStyle: FontStyle.italic,
+                    ),
+                  );
                 },
               ),
             ),
@@ -509,8 +532,7 @@ class _TypingIndicatorBubbleState extends State<_TypingIndicatorBubble>
 class _TypewriterBubble extends StatefulWidget {
   final String text;
   final VoidCallback? onComplete;
-  const _TypewriterBubble({Key? key, required this.text, this.onComplete})
-      : super(key: key);
+  const _TypewriterBubble({super.key, required this.text, this.onComplete});
 
   @override
   State<_TypewriterBubble> createState() => _TypewriterBubbleState();
@@ -550,8 +572,10 @@ class _TypewriterBubbleState extends State<_TypewriterBubble> {
         children: [
           Flexible(
             child: Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16.0,
+                vertical: 10.0,
+              ),
               decoration: BoxDecoration(
                 color: const Color(0xFFF0F0F0),
                 borderRadius: const BorderRadius.only(
@@ -562,10 +586,7 @@ class _TypewriterBubbleState extends State<_TypewriterBubble> {
               ),
               child: Text(
                 _displayed,
-                style: const TextStyle(
-                  color: Colors.black87,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.black87, fontSize: 16),
               ),
             ),
           ),

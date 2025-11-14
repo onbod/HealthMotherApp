@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart'; // For @required if using older Dart, or just use nullable types
 
 class Medication {
   final String id;
@@ -9,7 +8,7 @@ class Medication {
   final DateTime? endDate;
   final String notes;
   final List<DateTime>
-      reminderTimes; // New field for specific reminder times (e.g., 8:00 AM, 1:00 PM)
+  reminderTimes; // New field for specific reminder times (e.g., 8:00 AM, 1:00 PM)
   final bool alarmEnabled;
   final String sound; // URI or asset name for selected alarm sound
   // Add any other fields you deem necessary for a medication
@@ -37,9 +36,10 @@ class Medication {
       'startDate': startDate.millisecondsSinceEpoch, // Store as timestamp
       'endDate': endDate?.millisecondsSinceEpoch, // Store as timestamp
       'notes': notes,
-      'reminderTimes': reminderTimes
-          .map((time) => time.millisecondsSinceEpoch)
-          .toList(), // Store times as milliseconds
+      'reminderTimes':
+          reminderTimes
+              .map((time) => time.millisecondsSinceEpoch)
+              .toList(), // Store times as milliseconds
       'alarmEnabled': alarmEnabled,
       'sound': sound,
     };
@@ -53,11 +53,13 @@ class Medication {
       dosage: map['dosage'] as String,
       frequency: map['frequency'] as String,
       startDate: DateTime.fromMillisecondsSinceEpoch(map['startDate'] as int),
-      endDate: map['endDate'] != null
-          ? DateTime.fromMillisecondsSinceEpoch(map['endDate'] as int)
-          : null,
+      endDate:
+          map['endDate'] != null
+              ? DateTime.fromMillisecondsSinceEpoch(map['endDate'] as int)
+              : null,
       notes: map['notes'] as String? ?? '',
-      reminderTimes: (map['reminderTimes'] as List<dynamic>?)
+      reminderTimes:
+          (map['reminderTimes'] as List<dynamic>?)
               ?.map(
                 (timestamp) =>
                     DateTime.fromMillisecondsSinceEpoch(timestamp as int),

@@ -11,13 +11,13 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcrypt');
 const cors = require('cors');
 
-const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key'; // Keep secret in Railway var
-const otpStore = new Map(); // In-memory OTP store for demo
+const SECRET_KEY = process.env.SECRET_KEY || 'your_secret_key';
+const otpStore = new Map();
 
 const app = express();
 app.use(bodyParser.json());
 
-// ✅ Allow frontend to connect
+// Allow frontend to connect
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:59016',
@@ -39,27 +39,30 @@ app.use(cors({
   credentials: true
 }));
 
-// ✅ Log all incoming requests
+// Log all incoming requests (only for non-polling endpoints to reduce log spam)
 app.use((req, res, next) => {
-  console.log('INCOMING REQUEST:', req.method, req.url);
+  // Skip logging for frequent polling endpoints
+  const skipLogging = ['/api/notifications', '/chat/', '/user/session'].some(path => req.url.startsWith(path));
+  if (!skipLogging) {
+    console.log('INCOMING REQUEST:', req.method, req.url);
+  }
   next();
 });
 
-// ✅ PostgreSQL connection (works locally + Railway)
+// PostgreSQL connection (works locally + Railway)
 const pool = require('./db');
 
 // Test database connection on startup
 async function testDatabaseConnection() {
   try {
+    if (process.env.NODE_ENV !== 'production') {
     console.log('Testing database connection...');
-    console.log('DATABASE_URL exists:', !!process.env.DATABASE_URL);
-    console.log('NODE_ENV:', process.env.NODE_ENV);
+    }
     
     const result = await pool.query('SELECT NOW() as current_time');
-    console.log('✅ Database connection successful:', result.rows[0].current_time);
-    console.log('🔧 Collation version mismatch fixed!');
+    console.log('Database connection successful:', result.rows[0].current_time);
   } catch (error) {
-    console.error('❌ Database connection failed:', error.message);
+    console.error('Database connection failed:', error.message);
     // Don't exit in production to keep the container running
     if (process.env.NODE_ENV !== 'production') {
       process.exit(1);
@@ -70,7 +73,7 @@ async function testDatabaseConnection() {
 // Test connection on startup
 testDatabaseConnection();
 
-// ✅ Root endpoint for Railway health check
+// Root endpoint for Railway health check
 app.get('/', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -81,7 +84,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// ✅ Railway health check endpoint (no database required)
+// Railway health check endpoint (no database required)
 app.get('/healthz', (req, res) => {
   res.status(200).json({ 
     status: 'healthy',
@@ -92,7 +95,7 @@ app.get('/healthz', (req, res) => {
   });
 });
 
-// ✅ Additional Railway health check
+// Additional Railway health check
 app.get('/health', (req, res) => {
   res.status(200).json({ 
     status: 'ok',
@@ -102,7 +105,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ✅ Simple test endpoint that doesn't require database
+// Simple test endpoint that doesn't require database
 app.get('/test', (req, res) => {
   res.json({ 
     status: 'ok', 
@@ -111,7 +114,7 @@ app.get('/test', (req, res) => {
   });
 });
 
-// ✅ FHIR R4 Metadata Endpoint (CapabilityStatement)
+// FHIR R4 Metadata Endpoint (CapabilityStatement)
 app.get('/metadata', (req, res) => {
   try {
     const capabilityStatement = fhirCompliance.getCapabilityStatement();
@@ -132,12 +135,12 @@ app.get('/metadata', (req, res) => {
   }
 });
 
-// ✅ FHIR R4 Conformance Endpoint (alias for metadata)
+// FHIR R4 Conformance Endpoint (alias for metadata)
 app.get('/fhir/metadata', (req, res) => {
   res.redirect('/metadata');
 });
 
-// ✅ FHIR R4 Search Parameters
+// FHIR R4 Search Parameters
 app.get('/SearchParameter', (req, res) => {
   try {
     const searchParams = fhirCompliance.getSearchParameters();
@@ -158,7 +161,7 @@ app.get('/SearchParameter', (req, res) => {
   }
 });
 
-// ✅ FHIR R4 Operation Definitions
+// FHIR R4 Operation Definitions
 app.get('/OperationDefinition', (req, res) => {
   try {
     const operationDefs = fhirCompliance.getOperationDefinitions();
@@ -187,7 +190,7 @@ app.get('/OperationDefinition', (req, res) => {
   }
 });
 
-// ✅ FHIR R4 Structure Definitions
+// FHIR R4 Structure Definitions
 app.get('/StructureDefinition', (req, res) => {
   try {
     const structureDefs = fhirCompliance.getStructureDefinitions();
@@ -216,7 +219,7 @@ app.get('/StructureDefinition', (req, res) => {
   }
 });
 
-// ✅ FHIR R4 Value Sets
+// FHIR R4 Value Sets
 app.get('/ValueSet', (req, res) => {
   try {
     const valueSets = fhirCompliance.getValueSets();
@@ -245,7 +248,7 @@ app.get('/ValueSet', (req, res) => {
   }
 });
 
-// ✅ Database test endpoint
+// Database test endpoint
 app.get('/db-test', async (req, res) => {
   try {
     const result = await pool.query('SELECT NOW() as current_time');
@@ -265,8 +268,8 @@ app.get('/db-test', async (req, res) => {
   }
 });
 
-// ✅ Quick Health Check
-app.get('/health', async (req, res) => {
+// Quick Health Check (duplicate - keeping for compatibility)
+app.get('/health-check', async (req, res) => {
   try {
     await pool.query('SELECT NOW()');
     res.json({ status: 'ok', db: 'connected' });
@@ -276,9 +279,7 @@ app.get('/health', async (req, res) => {
   }
 });
 
-/**
- * ✅ Your Authentication & User Routes
- */
+// Authentication & User Routes
 
 // OTP request endpoint
 app.post('/login/request-otp', async (req, res) => {
@@ -429,7 +430,7 @@ app.post('/admin/login', async (req, res) => {
   res.json({ token, name: admin.full_name || admin.username, email: admin.email });
 });
 
-// ✅ JWT auth middleware
+// JWT auth middleware
 function authenticateToken(req, res, next) {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -448,21 +449,18 @@ function authenticateToken(req, res, next) {
 // Import DAK Decision Support System
 const dakSupport = require('./dak-decision-support');
 
-// ✅ Enhanced DAK Decision Support Alerts
+// Enhanced DAK Decision Support Alerts
 function generateDecisionSupportAlerts(pregnancy, ancVisits) {
   return dakSupport.generateDAKDecisionSupportAlerts(pregnancy, ancVisits);
 }
 
-// ✅ Basic Test Route
+// Basic Test Route
 app.get('/test-patients', async (req, res) => {
   const result = await pool.query('SELECT patient_id FROM patient');
   res.json(result.rows);
 });
 
-/**
- * ✅ All your other routes (FHIR, reports, chat, etc.) remain the same...
- * (I didn’t remove any of your functionality)
- */
+// Helper function for FHIR OperationOutcome
 
 function operationOutcome(severity, code, diagnostics) {
   return {
@@ -479,7 +477,7 @@ function operationOutcome(severity, code, diagnostics) {
 
 // This function is now replaced by the DAK decision support system above
 
-// 1. Your custom endpoint
+// 1. Your custom endpoint - Updated to match new schema
 app.post('/report', async (req, res) => {
   const {
     client_number,
@@ -491,32 +489,57 @@ app.post('/report', async (req, res) => {
     is_anonymous,
     organization_id,
     reply,
-    fhir_resource
+    fhir_resource,
+    image_urls
   } = req.body;
 
   try {
+    // Validate required fields
+    if (!client_number || !client_name || !description) {
+      return res.status(400).json({ 
+        error: 'Missing required fields', 
+        details: 'client_number, client_name, and description are required' 
+      });
+    }
+
+    const fhirId = uuidv4();
+    const dakReportId = `dak-report-${Date.now()}`;
+    
+    // Handle image_urls - ensure it's an array
+    let imageUrlsArray = [];
+    if (image_urls) {
+      if (Array.isArray(image_urls)) {
+        imageUrlsArray = image_urls.filter(url => url && url.trim().length > 0);
+      } else if (typeof image_urls === 'string') {
+        imageUrlsArray = [image_urls].filter(url => url && url.trim().length > 0);
+      }
+    }
+    
     const result = await pool.query(
       `INSERT INTO reports
-        (client_number, client_name, phone_number, report_type, facility_name, organization_id, description, is_anonymous, reply, fhir_resource)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+        (fhir_id, dak_report_id, client_number, client_name, phone_number, report_type, facility_name, organization_id, description, is_anonymous, reply, fhir_resource, image_urls)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
        RETURNING *`,
       [
+        fhirId,
+        dakReportId,
         client_number,
         client_name,
-        phone_number,
-        report_type,
-        facility_name,
+        phone_number || null,
+        report_type || null,
+        facility_name || null,
         organization_id || null,
         description,
-        is_anonymous === true,
+        is_anonymous === true || false,
         reply || null,
-        fhir_resource || null
+        fhir_resource ? JSON.stringify(fhir_resource) : null,
+        imageUrlsArray.length > 0 ? imageUrlsArray : null
       ]
     );
     res.status(201).json(result.rows[0]);
   } catch (e) {
     console.error('Error inserting report:', e);
-    res.status(500).json({ error: 'Failed to submit report' });
+    res.status(500).json({ error: 'Failed to submit report', details: e.message });
   }
 });
 
@@ -637,7 +660,7 @@ app.get('/dak/scheduling/:patientId', async (req, res) => {
     const schedulingResult = await pool.query(`
       SELECT * FROM dak_contact_schedule 
       WHERE patient_id = $1 
-      ORDER BY created_at DESC
+      ORDER BY contact_number ASC, created_at DESC
     `, [patientId]);
     
     res.json({
@@ -655,53 +678,110 @@ app.get('/dak/scheduling/:patientId', async (req, res) => {
   }
 });
 
+// DAK Scheduling endpoint for specific contact number
+app.get('/dak/scheduling/:patientId/:contactNumber', async (req, res) => {
+  try {
+    const { patientId, contactNumber } = req.params;
+    
+    const result = await pool.query(`
+      SELECT 
+        dcs.*,
+        p.name as patient_name,
+        p.identifier as patient_identifier,
+        pr.lmp_date,
+        pr.edd_date
+      FROM dak_contact_schedule dcs
+      LEFT JOIN patient p ON dcs.patient_id = p.patient_id
+      LEFT JOIN pregnancy pr ON dcs.pregnancy_id = pr.pregnancy_id
+      WHERE dcs.patient_id = $1 AND dcs.contact_number = $2
+      ORDER BY dcs.created_at DESC
+      LIMIT 1
+    `, [patientId, contactNumber]);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({ 
+        error: 'Contact schedule not found',
+        message: `No contact schedule found for patient ${patientId} with contact number ${contactNumber}`
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: result.rows[0],
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    console.error('Error fetching DAK contact schedule:', error);
+    res.status(500).json({ error: 'Failed to fetch contact schedule' });
+  }
+});
+
 // DAK Quality Metrics endpoint
 app.get('/dak/quality-metrics', async (req, res) => {
   try {
-    const { facilityId, startDate, endDate } = req.query;
+    const { facilityId, startDate, endDate, patientId } = req.query;
     
     let query = `
       SELECT 
-        qm.metric_name,
-        qm.metric_value,
-        qm.target_value,
-        qm.measurement_date,
-        qm.metric_type,
-        qm.description
-      FROM dak_quality_metrics qm
+        dqi.indicator_id,
+        dqi.fhir_id,
+        dqi.patient_id,
+        dqi.encounter_id,
+        dqi.indicator_code,
+        dqi.indicator_name,
+        dqi.indicator_value,
+        dqi.indicator_status,
+        dqi.risk_flag,
+        dqi.decision_support_message,
+        dqi.next_visit_schedule,
+        dqi.dak_indicator_id,
+        dqi.measurement_date,
+        dqi.target_value,
+        dqi.fhir_resource,
+        dqi.version_id,
+        dqi.created_at,
+        dqi.updated_at,
+        dqi.last_updated,
+        p.name as patient_name,
+        p.identifier as patient_identifier
+      FROM dak_quality_indicators dqi
+      LEFT JOIN patient p ON dqi.patient_id = p.patient_id
       WHERE 1=1
     `;
     
     const params = [];
     let paramCount = 0;
     
-    if (facilityId) {
+    if (patientId) {
       paramCount++;
-      query += ` AND qm.organization_id = $${paramCount}`;
-      params.push(facilityId);
+      query += ` AND dqi.patient_id = $${paramCount}`;
+      params.push(patientId);
     }
     
     if (startDate) {
       paramCount++;
-      query += ` AND qm.measurement_date >= $${paramCount}`;
+      query += ` AND dqi.measurement_date >= $${paramCount}`;
       params.push(startDate);
     }
     
     if (endDate) {
       paramCount++;
-      query += ` AND qm.measurement_date <= $${paramCount}`;
+      query += ` AND dqi.measurement_date <= $${paramCount}`;
       params.push(endDate);
     }
     
-    query += ` ORDER BY qm.measurement_date DESC`;
+    query += ` ORDER BY dqi.measurement_date DESC`;
     
     const result = await pool.query(query, params);
     
     res.json({
+      success: true,
       qualityMetrics: result.rows,
       totalMetrics: result.rows.length,
       period: { startDate, endDate },
-      facilityId
+      filters: { facilityId, patientId },
+      timestamp: new Date().toISOString()
     });
     
   } catch (error) {
@@ -835,7 +915,7 @@ app.get('/user/session', async (req, res) => {
   }
 });
 
-// ✅ API PREFIXED ROUTES (for frontend compatibility)
+// API PREFIXED ROUTES (for frontend compatibility)
 app.get('/api/anc_visit', async (req, res) => {
   try {
     const result = await pool.query(`
@@ -928,7 +1008,7 @@ app.get('/api/delivery', async (req, res) => {
   }
 });
 
-// ✅ SPECIFIC TABLE ROUTES – THESE ALWAYS COME FIRST
+// SPECIFIC TABLE ROUTES – THESE ALWAYS COME FIRST
 
 // ANC visits
 app.get('/anc_visit', async (req, res) => {
@@ -1502,19 +1582,24 @@ app.get('/organization', async (req, res) => {
   }
 });
 
-// Admin
+// Admin - Updated to match new schema (using admins table)
 app.get('/admin', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
         id,
+        fhir_id,
+        dak_admin_id,
         username,
         email,
-        name,
+        full_name,
         role,
+        practitioner_identifier,
+        is_active,
+        last_login,
         created_at,
         updated_at
-      FROM admin 
+      FROM admins 
       ORDER BY created_at DESC
     `);
     
@@ -1581,26 +1666,36 @@ app.get('/encounter', async (req, res) => {
   }
 });
 
-// Report
+// Report - Updated to match new schema
 app.get('/report', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
         id,
+        fhir_id,
+        dak_report_id,
         client_number,
         client_name,
         phone_number,
         report_type,
         facility_name,
+        organization_id,
         description,
         is_anonymous,
-        file_urls,
-        who_guideline,
-        dak_guideline,
+        is_read,
+        last_read_at,
+        reply,
+        reply_sent_at,
+        reply_sent_by,
+        deleted,
+        deleted_at,
         fhir_resource,
+        version_id,
+        last_updated,
         created_at,
         updated_at
-      FROM report 
+      FROM reports 
+      WHERE deleted = FALSE OR deleted IS NULL
       ORDER BY created_at DESC
     `);
     
@@ -1816,25 +1911,23 @@ app.get('/dak_contact_schedule', async (req, res) => {
         dcs.fhir_id,
         dcs.patient_id,
         dcs.pregnancy_id,
-        dcs.contact_type,
-        dcs.scheduled_date,
-        dcs.scheduled_time,
+        dcs.contact_number,
+        dcs.recommended_gestation_weeks,
+        dcs.contact_date,
         dcs.contact_status,
-        dcs.contact_method,
-        dcs.contact_reason,
-        dcs.contact_notes,
-        dcs.contact_outcome,
-        dcs.follow_up_required,
-        dcs.follow_up_date,
+        dcs.contact_type,
+        dcs.provider_notes,
+        dcs.dak_contact_id,
         dcs.fhir_resource,
         dcs.version_id,
         dcs.created_at,
         dcs.updated_at,
+        dcs.last_updated,
         p.name as patient_name,
         p.identifier as patient_identifier
       FROM dak_contact_schedule dcs
       LEFT JOIN patient p ON dcs.patient_id = p.patient_id
-      ORDER BY dcs.scheduled_date DESC
+      ORDER BY dcs.contact_date DESC, dcs.contact_number ASC
     `);
     
     res.json({
@@ -1861,21 +1954,21 @@ app.get('/dak_risk_assessment', async (req, res) => {
         dra.risk_id,
         dra.fhir_id,
         dra.patient_id,
-        dra.pregnancy_id,
-        dra.assessment_date,
-        dra.risk_level,
+        dra.encounter_id,
+        dra.risk_category,
         dra.risk_factors,
         dra.risk_score,
-        dra.assessment_method,
-        dra.assessor_name,
-        dra.assessor_qualification,
-        dra.recommendations,
+        dra.risk_level,
+        dra.management_plan,
         dra.follow_up_required,
-        dra.follow_up_date,
+        dra.dak_risk_id,
+        dra.assessment_date,
+        dra.assessor_name,
         dra.fhir_resource,
         dra.version_id,
         dra.created_at,
         dra.updated_at,
+        dra.last_updated,
         p.name as patient_name,
         p.identifier as patient_identifier
       FROM dak_risk_assessment dra
@@ -1906,24 +1999,27 @@ app.get('/dak_quality_indicators', async (req, res) => {
       SELECT 
         dqi.indicator_id,
         dqi.fhir_id,
-        dqi.organization_id,
-        dqi.indicator_name,
+        dqi.patient_id,
+        dqi.encounter_id,
         dqi.indicator_code,
-        dqi.indicator_category,
-        dqi.target_value,
-        dqi.actual_value,
+        dqi.indicator_name,
+        dqi.indicator_value,
+        dqi.indicator_status,
+        dqi.risk_flag,
+        dqi.decision_support_message,
+        dqi.next_visit_schedule,
+        dqi.dak_indicator_id,
         dqi.measurement_date,
-        dqi.measurement_period_start,
-        dqi.measurement_period_end,
-        dqi.status,
-        dqi.description,
+        dqi.target_value,
         dqi.fhir_resource,
         dqi.version_id,
         dqi.created_at,
         dqi.updated_at,
-        o.name as organization_name
+        dqi.last_updated,
+        p.name as patient_name,
+        p.identifier as patient_identifier
       FROM dak_quality_indicators dqi
-      LEFT JOIN organization o ON dqi.organization_id = o.organization_id
+      LEFT JOIN patient p ON dqi.patient_id = p.patient_id
       ORDER BY dqi.measurement_date DESC
     `);
     
@@ -1952,15 +2048,15 @@ app.get('/dak_configuration', async (req, res) => {
         dc.fhir_id,
         dc.config_key,
         dc.config_value,
-        dc.config_type,
+        dc.config_description,
         dc.config_category,
-        dc.description,
         dc.is_active,
-        dc.created_by,
+        dc.dak_config_id,
         dc.fhir_resource,
         dc.version_id,
         dc.created_at,
-        dc.updated_at
+        dc.updated_at,
+        dc.last_updated
       FROM dak_configuration dc
       ORDER BY dc.created_at DESC
     `);
@@ -1981,29 +2077,55 @@ app.get('/dak_configuration', async (req, res) => {
   }
 });
 
-// Tips
+// Tips - Updated to match new schema
 app.get('/tips', async (req, res) => {
   try {
-    const result = await pool.query(`
+    const { category, is_active, trimester } = req.query;
+    let query = `
       SELECT 
         t.id,
         t.fhir_id,
+        t.dak_tip_id,
         t.title,
+        t.category,
         t.content,
-        t.tip_type,
-        t.target_audience,
-        t.target_stage,
-        t.target_weeks,
-        t.target_visits,
+        t.trimester,
+        t.visit,
+        t.schedule,
+        t.weeks,
         t.is_active,
-        t.created_by,
         t.fhir_resource,
         t.version_id,
+        t.last_updated,
         t.created_at,
         t.updated_at
       FROM tips t
-      ORDER BY t.created_at DESC
-    `);
+      WHERE 1=1
+    `;
+    const params = [];
+    let paramCount = 0;
+    
+    if (category) {
+      paramCount++;
+      query += ` AND t.category = $${paramCount}`;
+      params.push(category);
+    }
+    
+    if (is_active !== undefined) {
+      paramCount++;
+      query += ` AND t.is_active = $${paramCount}`;
+      params.push(is_active === 'true');
+    }
+    
+    if (trimester) {
+      paramCount++;
+      query += ` AND (t.trimester = $${paramCount} OR t.trimester IS NULL)`;
+      params.push(trimester);
+    }
+    
+    query += ` ORDER BY t.created_at DESC`;
+    
+    const result = await pool.query(query, params);
     
     res.json({
       success: true,
@@ -2021,32 +2143,87 @@ app.get('/tips', async (req, res) => {
   }
 });
 
-// Chat Threads
+// Chat Threads - Updated to match new schema
 app.get('/chat_threads', async (req, res) => {
   try {
-    const result = await pool.query(`
+    // First check if table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'chat_threads'
+      );
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.json({
+        success: true,
+        data: [],
+        total: 0,
+        timestamp: new Date().toISOString(),
+        message: 'chat_threads table does not exist yet'
+      });
+    }
+    
+    // Try with JOIN first, fallback to simple query if JOIN fails
+    let result;
+    try {
+      result = await pool.query(`
       SELECT 
         ct.id,
         ct.fhir_id,
-        ct.patient_id,
+        ct.dak_thread_id,
+        ct.user_id,
         ct.health_worker_id,
-        ct.thread_title,
-        ct.thread_status,
-        ct.priority,
-        ct.category,
-        ct.tags,
-        ct.last_message_date,
-        ct.message_count,
+        ct.patient_id,
+        ct.organization_id,
+        ct.last_message,
+        ct.last_message_time,
+        ct.unread_count,
+        ct.updated_by,
         ct.fhir_resource,
         ct.version_id,
+        ct.last_updated,
         ct.created_at,
         ct.updated_at,
         p.name as patient_name,
         p.identifier as patient_identifier
       FROM chat_threads ct
       LEFT JOIN patient p ON ct.patient_id = p.patient_id
-      ORDER BY ct.last_message_date DESC
+      ORDER BY ct.last_message_time DESC NULLS LAST, ct.created_at DESC
     `);
+    } catch (joinErr) {
+      // If JOIN fails, try without JOIN
+      console.warn('JOIN failed, trying without patient table:', joinErr.message);
+      result = await pool.query(`
+        SELECT 
+          id,
+          fhir_id,
+          dak_thread_id,
+          user_id,
+          health_worker_id,
+          patient_id,
+          organization_id,
+          last_message,
+          last_message_time,
+          unread_count,
+          updated_by,
+          fhir_resource,
+          version_id,
+          last_updated,
+          created_at,
+          updated_at
+        FROM chat_threads
+        ORDER BY last_message_time DESC NULLS LAST, created_at DESC
+      `);
+      
+      // Add null patient fields
+      result.rows = result.rows.map(row => ({
+        ...row,
+        patient_name: null,
+        patient_identifier: null
+      }));
+    }
     
     res.json({
       success: true,
@@ -2059,39 +2236,93 @@ app.get('/chat_threads', async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch chat_threads data',
-      message: err.message 
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
 });
 
-// Chat Messages
+// Chat Messages - Updated to match new schema
 app.get('/chat_messages', async (req, res) => {
   try {
-    const result = await pool.query(`
+    // First check if table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'chat_messages'
+      );
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.json({
+        success: true,
+        data: [],
+        total: 0,
+        timestamp: new Date().toISOString(),
+        message: 'chat_messages table does not exist yet'
+      });
+    }
+    
+    // Try with JOIN first, fallback to simple query if JOIN fails
+    let result;
+    try {
+      result = await pool.query(`
       SELECT 
         cm.id,
         cm.fhir_id,
+        cm.dak_message_id,
         cm.thread_id,
         cm.sender_id,
         cm.receiver_id,
-        cm.message_type,
-        cm.message_content,
-        cm.message_status,
-        cm.priority,
-        cm.attachments,
-        cm.reply_to_message_id,
+        cm.sender_type,
+        cm.patient_id,
+        cm.organization_id,
+        cm.message,
         cm.is_read,
-        cm.read_at,
         cm.fhir_resource,
         cm.version_id,
+        cm.last_updated,
         cm.created_at,
         cm.updated_at,
         p.name as sender_name,
         p.identifier as sender_identifier
       FROM chat_messages cm
-      LEFT JOIN patient p ON cm.sender_id = p.patient_id
+      LEFT JOIN patient p ON cm.patient_id = p.patient_id
       ORDER BY cm.created_at DESC
     `);
+    } catch (joinErr) {
+      // If JOIN fails, try without JOIN
+      console.warn('JOIN failed, trying without patient table:', joinErr.message);
+      result = await pool.query(`
+        SELECT 
+          id,
+          fhir_id,
+          dak_message_id,
+          thread_id,
+          sender_id,
+          receiver_id,
+          sender_type,
+          patient_id,
+          organization_id,
+          message,
+          is_read,
+          fhir_resource,
+          version_id,
+          last_updated,
+          created_at,
+          updated_at
+        FROM chat_messages
+        ORDER BY created_at DESC
+      `);
+      
+      // Add null patient fields
+      result.rows = result.rows.map(row => ({
+        ...row,
+        sender_name: null,
+        sender_identifier: null
+      }));
+    }
     
     res.json({
       success: true,
@@ -2104,37 +2335,62 @@ app.get('/chat_messages', async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch chat_messages data',
-      message: err.message 
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
 });
 
-// Reports
+// Reports - Updated to match new schema
 app.get('/reports', async (req, res) => {
   try {
-    const result = await pool.query(`
+    const { is_read, deleted } = req.query;
+    let query = `
       SELECT 
-        r.id,
-        r.fhir_id,
-        r.report_type,
-        r.report_title,
-        r.report_content,
-        r.report_status,
-        r.priority,
-        r.category,
-        r.tags,
-        r.created_by,
-        r.assigned_to,
-        r.due_date,
-        r.completed_date,
-        r.attachments,
-        r.fhir_resource,
-        r.version_id,
-        r.created_at,
-        r.updated_at
-      FROM reports r
-      ORDER BY r.created_at DESC
-    `);
+        id,
+        fhir_id,
+        dak_report_id,
+        client_number,
+        client_name,
+        phone_number,
+        report_type,
+        facility_name,
+        organization_id,
+        description,
+        is_anonymous,
+        is_read,
+        last_read_at,
+        reply,
+        reply_sent_at,
+        reply_sent_by,
+        deleted,
+        deleted_at,
+        fhir_resource,
+        version_id,
+        last_updated,
+        created_at,
+        updated_at
+      FROM reports 
+      WHERE 1=1
+    `;
+    const params = [];
+    let paramCount = 0;
+    
+    if (is_read !== undefined) {
+      paramCount++;
+      query += ` AND is_read = $${paramCount}`;
+      params.push(is_read === 'true');
+    }
+    
+    if (deleted === 'false' || deleted === undefined) {
+      query += ` AND (deleted = FALSE OR deleted IS NULL)`;
+    } else if (deleted === 'true') {
+      query += ` AND deleted = TRUE`;
+    }
+    
+    query += ` ORDER BY created_at DESC`;
+    
+    const result = await pool.query(query, params);
     
     res.json({
       success: true,
@@ -2152,23 +2408,24 @@ app.get('/reports', async (req, res) => {
   }
 });
 
-// Admins
+// Admins - Updated to match new schema
 app.get('/admins', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
         a.id,
         a.fhir_id,
+        a.dak_admin_id,
         a.username,
         a.email,
-        a.name,
+        a.full_name,
         a.role,
-        a.permissions,
+        a.practitioner_identifier,
         a.is_active,
         a.last_login,
-        a.login_count,
         a.fhir_resource,
         a.version_id,
+        a.last_updated,
         a.created_at,
         a.updated_at
       FROM admins a
@@ -2226,7 +2483,29 @@ app.get('/fhir_resources', async (req, res) => {
 // Chat messages (legacy endpoint for backward compatibility)
 app.get('/chat_message', async (req, res) => {
   try {
-    const result = await pool.query(`
+    // First check if table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'chat_message'
+      );
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.json({
+        success: true,
+        data: [],
+        total: 0,
+        timestamp: new Date().toISOString(),
+        message: 'chat_message table does not exist yet'
+      });
+    }
+    
+    // Try with JOIN first, fallback to simple query if JOIN fails
+    let result;
+    try {
+      result = await pool.query(`
       SELECT 
         cm.id,
         cm.chat_id,
@@ -2240,12 +2519,42 @@ app.get('/chat_message', async (req, res) => {
         cm.fhir_resource,
         cm.created_at,
         cm.updated_at,
+          cm.timestamp,
         p.name as sender_name,
         p.identifier as sender_identifier
       FROM chat_message cm
-      LEFT JOIN patient p ON cm.sender_id = p.patient_id
-      ORDER BY cm.created_at DESC
-    `);
+        LEFT JOIN patient p ON cm.sender_id = p.patient_id OR cm.sender_id = p.identifier
+        ORDER BY COALESCE(cm.timestamp, cm.created_at) DESC
+      `);
+    } catch (joinErr) {
+      // If JOIN fails, try without JOIN
+      console.warn('JOIN failed, trying without patient table:', joinErr.message);
+      result = await pool.query(`
+        SELECT 
+          id,
+          chat_id,
+          sender_id,
+          receiver_id,
+          message,
+          reply,
+          is_read,
+          who_guideline,
+          dak_guideline,
+          fhir_resource,
+          created_at,
+          updated_at,
+          timestamp
+        FROM chat_message
+        ORDER BY COALESCE(timestamp, created_at) DESC
+      `);
+      
+      // Add null patient fields
+      result.rows = result.rows.map(row => ({
+        ...row,
+        sender_name: null,
+        sender_identifier: null
+      }));
+    }
     
     res.json({
       success: true,
@@ -2258,7 +2567,8 @@ app.get('/chat_message', async (req, res) => {
     res.status(500).json({ 
       success: false,
       error: 'Failed to fetch chat_message data',
-      message: err.message 
+      message: err.message,
+      stack: process.env.NODE_ENV === 'development' ? err.stack : undefined
     });
   }
 });
@@ -2494,9 +2804,10 @@ app.get('/dak_quality_indicators/:id', async (req, res) => {
     const result = await pool.query(`
       SELECT 
         dqi.*,
-        o.name as organization_name
+        p.name as patient_name,
+        p.identifier as patient_identifier
       FROM dak_quality_indicators dqi
-      LEFT JOIN organization o ON dqi.organization_id = o.organization_id
+      LEFT JOIN patient p ON dqi.patient_id = p.patient_id
       WHERE dqi.indicator_id = $1
     `, [id]);
     
@@ -2554,12 +2865,30 @@ app.get('/dak_configuration/:id', async (req, res) => {
   }
 });
 
-// Tips by ID
+// Tips by ID - Updated to match new schema
 app.get('/tips/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(`
-      SELECT * FROM tips WHERE id = $1
+      SELECT 
+        id,
+        fhir_id,
+        dak_tip_id,
+        title,
+        category,
+        content,
+        trimester,
+        visit,
+        schedule,
+        weeks,
+        is_active,
+        fhir_resource,
+        version_id,
+        last_updated,
+        created_at,
+        updated_at
+      FROM tips 
+      WHERE id = $1
     `, [id]);
     
     if (result.rows.length === 0) {
@@ -2585,13 +2914,28 @@ app.get('/tips/:id', async (req, res) => {
   }
 });
 
-// Chat Threads by ID
+// Chat Threads by ID - Updated to match new schema
 app.get('/chat_threads/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(`
       SELECT 
-        ct.*,
+        ct.id,
+        ct.fhir_id,
+        ct.dak_thread_id,
+        ct.user_id,
+        ct.health_worker_id,
+        ct.patient_id,
+        ct.organization_id,
+        ct.last_message,
+        ct.last_message_time,
+        ct.unread_count,
+        ct.updated_by,
+        ct.fhir_resource,
+        ct.version_id,
+        ct.last_updated,
+        ct.created_at,
+        ct.updated_at,
         p.name as patient_name,
         p.identifier as patient_identifier
       FROM chat_threads ct
@@ -2622,17 +2966,32 @@ app.get('/chat_threads/:id', async (req, res) => {
   }
 });
 
-// Chat Messages by ID
+// Chat Messages by ID - Updated to match new schema
 app.get('/chat_messages/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(`
       SELECT 
-        cm.*,
+        cm.id,
+        cm.fhir_id,
+        cm.dak_message_id,
+        cm.thread_id,
+        cm.sender_id,
+        cm.receiver_id,
+        cm.sender_type,
+        cm.patient_id,
+        cm.organization_id,
+        cm.message,
+        cm.is_read,
+        cm.fhir_resource,
+        cm.version_id,
+        cm.last_updated,
+        cm.created_at,
+        cm.updated_at,
         p.name as sender_name,
         p.identifier as sender_identifier
       FROM chat_messages cm
-      LEFT JOIN patient p ON cm.sender_id = p.patient_id
+      LEFT JOIN patient p ON cm.patient_id = p.patient_id
       WHERE cm.id = $1
     `, [id]);
     
@@ -2659,12 +3018,37 @@ app.get('/chat_messages/:id', async (req, res) => {
   }
 });
 
-// Reports by ID
+// Reports by ID - Updated to match new schema
 app.get('/reports/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(`
-      SELECT * FROM reports WHERE id = $1
+      SELECT 
+        id,
+        fhir_id,
+        dak_report_id,
+        client_number,
+        client_name,
+        phone_number,
+        report_type,
+        facility_name,
+        organization_id,
+        description,
+        is_anonymous,
+        is_read,
+        last_read_at,
+        reply,
+        reply_sent_at,
+        reply_sent_by,
+        deleted,
+        deleted_at,
+        fhir_resource,
+        version_id,
+        last_updated,
+        created_at,
+        updated_at
+      FROM reports 
+      WHERE id = $1 AND (deleted = FALSE OR deleted IS NULL)
     `, [id]);
     
     if (result.rows.length === 0) {
@@ -2690,12 +3074,29 @@ app.get('/reports/:id', async (req, res) => {
   }
 });
 
-// Admins by ID
+// Admins by ID - Updated to match new schema
 app.get('/admins/:id', async (req, res) => {
   try {
     const { id } = req.params;
     const result = await pool.query(`
-      SELECT * FROM admins WHERE id = $1
+      SELECT 
+        id,
+        fhir_id,
+        dak_admin_id,
+        username,
+        email,
+        full_name,
+        role,
+        practitioner_identifier,
+        is_active,
+        last_login,
+        fhir_resource,
+        version_id,
+        last_updated,
+        created_at,
+        updated_at
+      FROM admins 
+      WHERE id = $1
     `, [id]);
     
     if (result.rows.length === 0) {
@@ -2752,7 +3153,7 @@ app.get('/fhir_resources/:id', async (req, res) => {
   }
 });
 
-// ✅ FHIR R4 Resource Search Endpoint
+// FHIR R4 Resource Search Endpoint
 app.get('/fhir/:resourceType', async (req, res) => {
   const { resourceType } = req.params;
   const queryParams = req.query;
@@ -3344,7 +3745,7 @@ app.get('/fhir/:resourceType', async (req, res) => {
   }
 });
 
-// ✅ FHIR R4 Read Resource Endpoint
+// FHIR R4 Read Resource Endpoint
 app.get('/fhir/:resourceType/:id', async (req, res) => {
   const { resourceType, id } = req.params;
   
@@ -3376,7 +3777,7 @@ app.get('/fhir/:resourceType/:id', async (req, res) => {
   }
 });
 
-// ✅ FHIR R4 Create Resource Endpoint
+// FHIR R4 Create Resource Endpoint
 app.post('/fhir/:resourceType', async (req, res) => {
   const { resourceType } = req.params;
   const resource = req.body;
@@ -3477,7 +3878,7 @@ app.put('/fhir/:resourceType/:id', async (req, res) => {
   });
 });
 
-// ✅ FHIR R4 Delete Resource Endpoint
+// FHIR R4 Delete Resource Endpoint
 app.delete('/fhir/:resourceType/:id', async (req, res) => {
   const { resourceType, id } = req.params;
   
@@ -3508,7 +3909,7 @@ app.delete('/fhir/:resourceType/:id', async (req, res) => {
   }
 });
 
-// ✅ FHIR R4 Operations
+// FHIR R4 Operations
 app.post('/fhir/:resourceType/$validate', async (req, res) => {
   const { resourceType } = req.params;
   const resource = req.body;
@@ -3580,7 +3981,7 @@ app.post('/fhir/:resourceType/$validate', async (req, res) => {
   }
 });
 
-// ✅ FHIR R4 Patient Everything Operation
+// FHIR R4 Patient Everything Operation
 app.get('/fhir/Patient/:id/$everything', async (req, res) => {
   const { id } = req.params;
   const { start, end } = req.query;
@@ -3673,18 +4074,192 @@ app.get('/fhir/Patient/:id/$everything', async (req, res) => {
   }
 });
 
-// ✅ Get all messages for a chat
+// Get all messages for a chat
 app.get('/chat/:chatId/messages', async (req, res) => {
+  try {
+    // Verify JWT token
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided. Please log in.' });
+    }
+    
+    let decoded;
+    try {
+      decoded = jwt.verify(token, SECRET_KEY);
+    } catch (jwtErr) {
+      return res.status(401).json({ error: 'Invalid or expired token. Please log in again.' });
+    }
+    
   const { chatId } = req.params;
-  const result = await pool.query(
-    'SELECT * FROM chat_message WHERE chat_id = $1 ORDER BY timestamp ASC',
-    [chatId]
-  );
-  res.json(result.rows);
+    
+    // Verify that the chatId matches the logged-in user
+    // Get patient info from token to verify ownership
+    let patientIdFromToken = decoded.id;
+    let patientIdentifier = decoded.identifier;
+    let patientPhone = decoded.phone;
+    
+    // If we don't have patient_id directly, look it up
+    if (!patientIdFromToken && (patientIdentifier || patientPhone)) {
+      const patientCheck = await pool.query(
+        'SELECT patient_id, identifier, phone FROM patient WHERE identifier = $1 OR phone = $1 LIMIT 1',
+        [patientIdentifier || patientPhone]
+      );
+      if (patientCheck.rows.length > 0) {
+        patientIdFromToken = patientCheck.rows[0].patient_id;
+        patientIdentifier = patientCheck.rows[0].identifier;
+        patientPhone = patientCheck.rows[0].phone;
+      }
+    }
+    
+    // Verify chatId matches one of the user's identifiers
+    const validIdentifiers = [
+      patientIdFromToken?.toString(),
+      patientIdentifier,
+      patientPhone,
+      decoded.national_id
+    ].filter(Boolean);
+    
+    // First, try to find the patient for chatId
+    const chatIdCheck = await pool.query(
+      'SELECT patient_id, identifier, phone FROM patient WHERE identifier = $1 OR phone = $1 OR patient_id::text = $1 LIMIT 1',
+      [chatId]
+    );
+    
+    if (chatIdCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+    
+    const chatPatientId = chatIdCheck.rows[0].patient_id;
+    const chatPatientIdentifier = chatIdCheck.rows[0].identifier;
+    const chatPatientPhone = chatIdCheck.rows[0].phone;
+    
+    // Verify that the chatId's patient_id matches the logged-in user's patient_id
+    if (chatPatientId !== patientIdFromToken) {
+      // Also check if identifiers match as fallback
+      const validIdentifiers = [
+        patientIdFromToken?.toString(),
+        patientIdentifier,
+        patientPhone,
+        decoded.national_id
+      ].filter(Boolean);
+      
+      const chatIdentifiers = [
+        chatPatientId?.toString(),
+        chatPatientIdentifier,
+        chatPatientPhone
+      ].filter(Boolean);
+      
+      // Check if any identifier matches
+      const hasMatch = validIdentifiers.some(id => chatIdentifiers.includes(id));
+      
+      if (!hasMatch) {
+        return res.status(403).json({ error: 'You can only access your own messages.' });
+      }
+    }
+    
+    // Find patient by identifier to get patient_id
+    const patientResult = await pool.query(
+      'SELECT patient_id FROM patient WHERE identifier = $1 OR phone = $1 LIMIT 1',
+      [chatId]
+    );
+    
+    if (patientResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+    
+    const patientId = patientResult.rows[0].patient_id;
+    
+    // Find or create thread for this patient
+    let threadResult = await pool.query(
+      `SELECT id FROM chat_threads 
+       WHERE patient_id = $1 
+       ORDER BY created_at DESC 
+       LIMIT 1`,
+      [patientId]
+    );
+    
+    let threadId;
+    if (threadResult.rows.length === 0) {
+      // Create new thread
+      const newThread = await pool.query(
+        `INSERT INTO chat_threads 
+         (fhir_id, user_id, health_worker_id, patient_id, last_message_time, unread_count)
+         VALUES ($1, $2, $3, $4, NOW(), 0)
+         RETURNING id`,
+        [uuidv4(), chatId, 'health_worker', patientId]
+      );
+      threadId = newThread.rows[0].id;
+    } else {
+      threadId = threadResult.rows[0].id;
+    }
+    
+    // Get messages for this thread
+    const result = await pool.query(
+      `SELECT 
+        id,
+        fhir_id,
+        thread_id,
+        sender_id,
+        receiver_id,
+        sender_type,
+        patient_id,
+        organization_id,
+        message,
+        is_read,
+        dak_message_id,
+        fhir_resource,
+        version_id,
+        created_at,
+        updated_at,
+        last_updated
+       FROM chat_messages 
+       WHERE thread_id = $1 
+       ORDER BY created_at ASC`,
+      [threadId]
+    );
+    
+    // Format response for frontend compatibility
+    const formattedMessages = result.rows.map(row => ({
+      id: row.id,
+      fhir_id: row.fhir_id,
+      thread_id: row.thread_id,
+      sender_id: row.sender_id,
+      receiver_id: row.receiver_id,
+      message: row.message,
+      is_read: row.is_read,
+      timestamp: row.created_at || row.last_updated,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      status: row.is_read ? 'read' : 'sent'
+    }));
+    
+    res.json(formattedMessages);
+  } catch (err) {
+    console.error('Error fetching chat messages:', err);
+    res.status(500).json({ error: 'Failed to fetch chat messages', message: err.message });
+  }
 });
 
 // Send a new message
 app.post('/chat/:chatId/messages', async (req, res) => {
+  try {
+    // Verify JWT token
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided. Please log in.' });
+    }
+    
+    let decoded;
+    try {
+      decoded = jwt.verify(token, SECRET_KEY);
+    } catch (jwtErr) {
+      return res.status(401).json({ error: 'Invalid or expired token. Please log in again.' });
+    }
+    
   const { chatId } = req.params;
   const {
     sender_id,
@@ -3694,14 +4269,170 @@ app.post('/chat/:chatId/messages', async (req, res) => {
     dak_guideline,
     fhir_resource
   } = req.body;
+    
+    // Verify that the chatId matches the logged-in user
+    // Get patient info from token to verify ownership
+    let patientIdFromToken = decoded.id;
+    let patientIdentifier = decoded.identifier;
+    let patientPhone = decoded.phone;
+    
+    // If we don't have patient_id directly, look it up
+    if (!patientIdFromToken && (patientIdentifier || patientPhone)) {
+      const patientCheck = await pool.query(
+        'SELECT patient_id, identifier, phone FROM patient WHERE identifier = $1 OR phone = $1 LIMIT 1',
+        [patientIdentifier || patientPhone]
+      );
+      if (patientCheck.rows.length > 0) {
+        patientIdFromToken = patientCheck.rows[0].patient_id;
+        patientIdentifier = patientCheck.rows[0].identifier;
+        patientPhone = patientCheck.rows[0].phone;
+      }
+    }
+    
+    // Verify chatId matches one of the user's identifiers
+    // First, try to find the patient for chatId
+    const chatIdCheck = await pool.query(
+      'SELECT patient_id, identifier, phone FROM patient WHERE identifier = $1 OR phone = $1 OR patient_id::text = $1 LIMIT 1',
+      [chatId]
+    );
+    
+    if (chatIdCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+    
+    const chatPatientId = chatIdCheck.rows[0].patient_id;
+    const chatPatientIdentifier = chatIdCheck.rows[0].identifier;
+    const chatPatientPhone = chatIdCheck.rows[0].phone;
+    
+    // Verify that the chatId's patient_id matches the logged-in user's patient_id
+    if (chatPatientId !== patientIdFromToken) {
+      // Also check if identifiers match as fallback
+      const validIdentifiers = [
+        patientIdFromToken?.toString(),
+        patientIdentifier,
+        patientPhone,
+        decoded.national_id
+      ].filter(Boolean);
+      
+      const chatIdentifiers = [
+        chatPatientId?.toString(),
+        chatPatientIdentifier,
+        chatPatientPhone
+      ].filter(Boolean);
+      
+      // Check if any identifier matches
+      const hasMatch = validIdentifiers.some(id => chatIdentifiers.includes(id));
+      
+      if (!hasMatch) {
+        return res.status(403).json({ error: 'You can only send messages from your own account.' });
+      }
+    }
+    
+    if (!message || !sender_id || !receiver_id) {
+      return res.status(400).json({ error: 'Missing required fields: message, sender_id, receiver_id' });
+    }
+    
+    // Find patient by identifier to get patient_id
+    const patientResult = await pool.query(
+      'SELECT patient_id FROM patient WHERE identifier = $1 OR phone = $1 LIMIT 1',
+      [chatId]
+    );
+    
+    if (patientResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+    
+    const patientId = patientResult.rows[0].patient_id;
+    
+    // Find or create thread for this patient
+    let threadResult = await pool.query(
+      `SELECT id FROM chat_threads 
+       WHERE patient_id = $1 
+       ORDER BY created_at DESC 
+       LIMIT 1`,
+      [patientId]
+    );
+    
+    let threadId;
+    if (threadResult.rows.length === 0) {
+      // Create new thread
+      const newThread = await pool.query(
+        `INSERT INTO chat_threads 
+         (fhir_id, user_id, health_worker_id, patient_id, last_message, last_message_time, unread_count)
+         VALUES ($1, $2, $3, $4, $5, NOW(), 0)
+         RETURNING id`,
+        [uuidv4(), chatId, receiver_id || 'health_worker', patientId, message]
+      );
+      threadId = newThread.rows[0].id;
+    } else {
+      threadId = threadResult.rows[0].id;
+      // Update thread with last message
+      await pool.query(
+        `UPDATE chat_threads 
+         SET last_message = $1, last_message_time = NOW(), unread_count = unread_count + 1
+         WHERE id = $2`,
+        [message, threadId]
+      );
+    }
+    
+    // Determine sender type
+    const senderType = sender_id === chatId ? 'patient' : 'health_worker';
+    
+    // Create FHIR resource if not provided
+    const fhirResourceData = fhir_resource || {
+      resourceType: 'Communication',
+      status: 'completed',
+      category: {
+        coding: [{
+          system: 'http://who.int/dak/anc',
+          code: 'patient-communication',
+          display: 'Patient Communication'
+        }]
+      },
+      subject: { reference: `Patient/${patientId}` },
+      sent: new Date().toISOString()
+    };
+    
+    // Insert message
   const result = await pool.query(
-    `INSERT INTO chat_message
-      (chat_id, sender_id, receiver_id, message, who_guideline, dak_guideline, fhir_resource)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)
+      `INSERT INTO chat_messages
+        (fhir_id, thread_id, sender_id, receiver_id, sender_type, patient_id, message, is_read, fhir_resource)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      RETURNING *`,
-    [chatId, sender_id, receiver_id, message, who_guideline, dak_guideline, fhir_resource]
-  );
-  res.status(201).json(result.rows[0]);
+      [
+        uuidv4(),
+        threadId,
+        sender_id,
+        receiver_id,
+        senderType,
+        patientId,
+        message,
+        false,
+        JSON.stringify(fhirResourceData)
+      ]
+    );
+    
+    // Format response for frontend compatibility
+    const formattedMessage = {
+      id: result.rows[0].id,
+      fhir_id: result.rows[0].fhir_id,
+      thread_id: result.rows[0].thread_id,
+      sender_id: result.rows[0].sender_id,
+      receiver_id: result.rows[0].receiver_id,
+      message: result.rows[0].message,
+      is_read: result.rows[0].is_read,
+      timestamp: result.rows[0].created_at || result.rows[0].last_updated,
+      created_at: result.rows[0].created_at,
+      updated_at: result.rows[0].updated_at,
+      status: 'sent',
+      fhir_resource: result.rows[0].fhir_resource
+    };
+    
+    res.status(201).json(formattedMessage);
+  } catch (err) {
+    console.error('Error sending chat message:', err);
+    res.status(500).json({ error: 'Failed to send chat message', message: err.message });
+  }
 });
 
 // Removed duplicate listen call - using the one below with PORT env var
@@ -3727,7 +4458,11 @@ app.get('/admin/patient/:id/full', async (req, res) => {
   let ancVisits = [];
   if (pregnancy) {
     const ancResult = await pool.query(
-      'SELECT * FROM anc_visit WHERE patient_id = $1 ORDER BY visit_number ASC', [patientId]
+      `SELECT av.* FROM anc_visit av
+       JOIN pregnancy pr ON av.pregnancy_id = pr.pregnancy_id
+       WHERE pr.patient_id = $1 AND pr.pregnancy_id = $2
+       ORDER BY av.visit_number ASC`,
+      [patientId, pregnancy.pregnancy_id]
     );
     ancVisits = ancResult.rows;
   }
@@ -3786,19 +4521,61 @@ app.get('/api/chat_message', async (req, res) => {
 
 app.post('/api/chat_message/chat/:chatId', async (req, res) => {
   try {
+    // Check if table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'chat_message'
+      );
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.status(404).json({ 
+        error: 'chat_message table does not exist',
+        message: 'Please run the database migration to create the chat_message table'
+      });
+    }
+    
     const { chatId } = req.params;
     const { sender_id, receiver_id, message, who_guideline, dak_guideline, fhir_resource, reply, is_read } = req.body;
+    
+    // Validate required fields
+    if (!message && !reply) {
+      return res.status(400).json({ error: 'message or reply is required' });
+    }
+    if (!sender_id) {
+      return res.status(400).json({ error: 'sender_id is required' });
+    }
+    if (!receiver_id) {
+      return res.status(400).json({ error: 'receiver_id is required' });
+    }
+    
     const result = await pool.query(
       `INSERT INTO chat_message
-        (chat_id, sender_id, receiver_id, message, who_guideline, dak_guideline, fhir_resource, reply, is_read)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        (chat_id, sender_id, receiver_id, message, who_guideline, dak_guideline, fhir_resource, reply, is_read, created_at, timestamp)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, NOW(), NOW())
        RETURNING *`,
-      [chatId, sender_id, receiver_id, message, who_guideline, dak_guideline, fhir_resource, reply, is_read]
+      [
+        chatId, 
+        sender_id, 
+        receiver_id, 
+        message || reply || '', 
+        who_guideline || null, 
+        dak_guideline || null, 
+        fhir_resource ? JSON.stringify(fhir_resource) : null, 
+        reply || null, 
+        is_read !== undefined ? is_read : false
+      ]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('Error posting chat message:', err);
-    res.status(500).json({ error: 'Failed to post chat message' });
+    res.status(500).json({ 
+      error: 'Failed to post chat message',
+      message: err.message,
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 });
 
@@ -3813,6 +4590,100 @@ app.get('/api/chat_message/chat/:chatId', async (req, res) => {
   } catch (err) {
     console.error('Error fetching chat messages by chatId:', err);
     res.status(500).json({ error: 'Failed to fetch chat messages' });
+  }
+});
+
+// Admin endpoint for sending messages to chat_messages table (new schema)
+app.post('/api/admin/chat_messages', async (req, res) => {
+  try {
+    const { thread_id, sender_id, receiver_id, message, patient_id } = req.body;
+    
+    // Validate required fields
+    if (!thread_id) {
+      return res.status(400).json({ error: 'thread_id is required' });
+    }
+    if (!message) {
+      return res.status(400).json({ error: 'message is required' });
+    }
+    if (!sender_id) {
+      return res.status(400).json({ error: 'sender_id is required' });
+    }
+    if (!receiver_id) {
+      return res.status(400).json({ error: 'receiver_id is required' });
+    }
+    
+    // Check if chat_messages table exists
+    const tableCheck = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'chat_messages'
+      );
+    `);
+    
+    if (!tableCheck.rows[0].exists) {
+      return res.status(404).json({ 
+        error: 'chat_messages table does not exist',
+        message: 'Please run the database migration to create the chat_messages table'
+      });
+    }
+    
+    // Check if thread exists
+    const threadCheck = await pool.query(
+      'SELECT id FROM chat_threads WHERE id = $1',
+      [thread_id]
+    );
+    
+    if (threadCheck.rows.length === 0) {
+      return res.status(404).json({ error: 'Chat thread not found' });
+    }
+    
+    // Determine sender type
+    const senderType = sender_id === 'health_worker' || sender_id.includes('health_worker') ? 'health_worker' : 'patient';
+    
+    // Insert message
+    const result = await pool.query(
+      `INSERT INTO chat_messages
+        (fhir_id, thread_id, sender_id, receiver_id, sender_type, patient_id, message, is_read)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+       RETURNING *`,
+      [
+        uuidv4(),
+        thread_id,
+        sender_id,
+        receiver_id,
+        senderType,
+        patient_id || null,
+        message,
+        false
+      ]
+    );
+    
+    // Update thread with last message
+    await pool.query(
+      `UPDATE chat_threads 
+       SET last_message = $1, last_message_time = NOW(), unread_count = unread_count + 1
+       WHERE id = $2`,
+      [message, thread_id]
+    );
+    
+    res.status(201).json({
+      id: result.rows[0].id,
+      thread_id: result.rows[0].thread_id,
+      sender_id: result.rows[0].sender_id,
+      receiver_id: result.rows[0].receiver_id,
+      message: result.rows[0].message,
+      is_read: result.rows[0].is_read,
+      timestamp: result.rows[0].created_at,
+      created_at: result.rows[0].created_at,
+    });
+  } catch (err) {
+    console.error('Error posting admin chat message:', err);
+    res.status(500).json({ 
+      error: 'Failed to post chat message',
+      message: err.message,
+      details: process.env.NODE_ENV === 'development' ? err.stack : undefined
+    });
   }
 });
 
@@ -3871,199 +4742,455 @@ app.post('/api/chat_message/reply/:originalMessageId', async (req, res) => {
   }
 });
 
-// Nutrition Tips Endpoints
-app.post('/api/nutrition_tips', async (req, res) => {
+// Tips Endpoints - Updated to match new merged schema (nutrition_tips + health_tips -> tips)
+app.post('/api/tips', async (req, res) => {
   try {
-    const { title, content, target_stage, target_weeks, target_visits, weeks, nutrition_type, is_active } = req.body;
+    const { title, content, category, trimester, visit, schedule, weeks, is_active, fhir_resource } = req.body;
+    const fhirId = uuidv4();
+    const dakTipId = `dak-tip-${Date.now()}`;
+    
     const result = await pool.query(
-      `INSERT INTO nutrition_tips
-        (title, content, target_stage, target_weeks, target_visits, weeks, nutrition_type, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, TRUE))
+      `INSERT INTO tips
+        (fhir_id, dak_tip_id, title, category, content, trimester, visit, schedule, weeks, is_active, fhir_resource)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, TRUE), $11)
        RETURNING *`,
-      [title, content, target_stage, target_weeks, target_visits, weeks, nutrition_type, is_active]
+      [
+        fhirId,
+        dakTipId,
+        title,
+        category, // 'nutrition' or 'health'
+        content,
+        trimester || null,
+        visit || null,
+        schedule || null,
+        weeks || null,
+        is_active,
+        fhir_resource ? JSON.stringify(fhir_resource) : null
+      ]
+    );
+    res.status(201).json(result.rows[0]);
+  } catch (err) {
+    console.error('Error saving tip:', err);
+    res.status(500).json({ error: 'Failed to save tip', details: err.message });
+  }
+});
+
+app.get('/api/tips', async (req, res) => {
+  try {
+    const { category, is_active, trimester } = req.query;
+    let query = 'SELECT * FROM tips WHERE 1=1';
+    const params = [];
+    let paramCount = 0;
+    
+    if (category) {
+      paramCount++;
+      query += ` AND category = $${paramCount}`;
+      params.push(category);
+    }
+    
+    if (is_active !== undefined) {
+      paramCount++;
+      query += ` AND is_active = $${paramCount}`;
+      params.push(is_active === 'true');
+    }
+    
+    if (trimester) {
+      paramCount++;
+      query += ` AND (trimester = $${paramCount} OR trimester IS NULL)`;
+      params.push(trimester);
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const result = await pool.query(query, params);
+    res.json(result.rows);
+  } catch (err) {
+    console.error('Error fetching tips:', err);
+    res.status(500).json({ error: 'Failed to fetch tips', details: err.message });
+  }
+});
+
+// Tips by ID
+app.get('/api/tips/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('SELECT * FROM tips WHERE id = $1', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Tip not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error fetching tip:', err);
+    res.status(500).json({ error: 'Failed to fetch tip', details: err.message });
+  }
+});
+
+app.put('/api/tips/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, content, category, trimester, visit, schedule, weeks, is_active, fhir_resource } = req.body;
+    const result = await pool.query(
+      `UPDATE tips SET
+        title = COALESCE($1, title),
+        content = COALESCE($2, content),
+        category = COALESCE($3, category),
+        trimester = COALESCE($4, trimester),
+        visit = COALESCE($5, visit),
+        schedule = COALESCE($6, schedule),
+        weeks = COALESCE($7, weeks),
+        is_active = COALESCE($8, is_active),
+        fhir_resource = COALESCE($9, fhir_resource)
+       WHERE id = $10 RETURNING *`,
+      [title, content, category, trimester, visit, schedule, weeks, is_active, fhir_resource ? JSON.stringify(fhir_resource) : null, id]
+    );
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Tip not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Error updating tip:', err);
+    res.status(500).json({ error: 'Failed to update tip', details: err.message });
+  }
+});
+
+app.delete('/api/tips/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = await pool.query('DELETE FROM tips WHERE id = $1 RETURNING *', [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Tip not found' });
+    }
+    res.json({ message: 'Tip deleted', tip: result.rows[0] });
+  } catch (err) {
+    console.error('Error deleting tip:', err);
+    res.status(500).json({ error: 'Failed to delete tip', details: err.message });
+  }
+});
+
+// Legacy endpoints for backward compatibility - redirect to tips
+app.post('/api/nutrition_tips', async (req, res) => {
+  req.body.category = 'nutrition';
+  // Create a new request object with category set
+  const newReq = { ...req, body: { ...req.body, category: 'nutrition' } };
+  // Call the tips endpoint handler directly
+  const { title, content, trimester, visit, schedule, weeks, is_active, fhir_resource } = req.body;
+  const fhirId = uuidv4();
+  const dakTipId = `dak-tip-${Date.now()}`;
+  
+  try {
+    const result = await pool.query(
+      `INSERT INTO tips
+        (fhir_id, dak_tip_id, title, category, content, trimester, visit, schedule, weeks, is_active, fhir_resource)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, TRUE), $11)
+       RETURNING *`,
+      [
+        fhirId,
+        dakTipId,
+        title,
+        'nutrition',
+        content,
+        trimester || null,
+        visit || null,
+        schedule || null,
+        weeks || null,
+        is_active,
+        fhir_resource ? JSON.stringify(fhir_resource) : null
+      ]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('Error saving nutrition tip:', err);
-    res.status(500).json({ error: 'Failed to save nutrition tip' });
+    res.status(500).json({ error: 'Failed to save nutrition tip', details: err.message });
   }
 });
 
 app.get('/api/nutrition_tips', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM nutrition_tips ORDER BY created_at DESC');
+    const { is_active, trimester } = req.query;
+    let query = "SELECT * FROM tips WHERE category = 'nutrition'";
+    const params = [];
+    let paramCount = 0;
+    
+    if (is_active !== undefined) {
+      paramCount++;
+      query += ` AND is_active = $${paramCount}`;
+      params.push(is_active === 'true');
+    }
+    
+    if (trimester) {
+      paramCount++;
+      query += ` AND (trimester = $${paramCount} OR trimester IS NULL)`;
+      params.push(trimester);
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching nutrition tips:', err);
-    res.status(500).json({ error: 'Failed to fetch nutrition tips' });
+    res.status(500).json({ error: 'Failed to fetch nutrition tips', details: err.message });
   }
 });
 
-// Nutrition Tips by ID
-app.get('/api/nutrition_tips/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query('SELECT * FROM nutrition_tips WHERE id = $1', [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Nutrition tip not found' });
-    }
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error fetching nutrition tip:', err);
-    res.status(500).json({ error: 'Failed to fetch nutrition tip' });
-  }
-});
-
-app.put('/api/nutrition_tips/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, content, target_stage, target_weeks, target_visits, weeks, nutrition_type, is_active } = req.body;
-    const result = await pool.query(
-      `UPDATE nutrition_tips SET
-        title = $1,
-        content = $2,
-        target_stage = $3,
-        target_weeks = $4,
-        target_visits = $5,
-        weeks = $6,
-        nutrition_type = $7,
-        is_active = COALESCE($8, is_active)
-       WHERE id = $9 RETURNING *`,
-      [title, content, target_stage, target_weeks, target_visits, weeks, nutrition_type, is_active, id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Nutrition tip not found' });
-    }
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error updating nutrition tip:', err);
-    res.status(500).json({ error: 'Failed to update nutrition tip' });
-  }
-});
-
-app.delete('/api/nutrition_tips/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query('DELETE FROM nutrition_tips WHERE id = $1 RETURNING *', [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Nutrition tip not found' });
-    }
-    res.json({ message: 'Nutrition tip deleted', tip: result.rows[0] });
-  } catch (err) {
-    console.error('Error deleting nutrition tip:', err);
-    res.status(500).json({ error: 'Failed to delete nutrition tip' });
-  }
-});
-
-// Health Tips Endpoints
 app.post('/api/health_tips', async (req, res) => {
+  const { title, content, trimester, visit, schedule, weeks, is_active, fhir_resource } = req.body;
+  const fhirId = uuidv4();
+  const dakTipId = `dak-tip-${Date.now()}`;
+  
   try {
-    const { title, content, target_stage, target_weeks, target_visits, weeks, category_type, is_active } = req.body;
     const result = await pool.query(
-      `INSERT INTO health_tips
-        (title, content, target_stage, target_weeks, target_visits, weeks, category_type, is_active)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, COALESCE($8, TRUE))
+      `INSERT INTO tips
+        (fhir_id, dak_tip_id, title, category, content, trimester, visit, schedule, weeks, is_active, fhir_resource)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, TRUE), $11)
        RETURNING *`,
-      [title, content, target_stage, target_weeks, target_visits, weeks, category_type, is_active]
+      [
+        fhirId,
+        dakTipId,
+        title,
+        'health',
+        content,
+        trimester || null,
+        visit || null,
+        schedule || null,
+        weeks || null,
+        is_active,
+        fhir_resource ? JSON.stringify(fhir_resource) : null
+      ]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('Error saving health tip:', err);
-    res.status(500).json({ error: 'Failed to save health tip' });
+    res.status(500).json({ error: 'Failed to save health tip', details: err.message });
   }
 });
 
 app.get('/api/health_tips', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM health_tips ORDER BY created_at DESC');
+    const { is_active, trimester } = req.query;
+    let query = "SELECT * FROM tips WHERE category = 'health'";
+    const params = [];
+    let paramCount = 0;
+    
+    if (is_active !== undefined) {
+      paramCount++;
+      query += ` AND is_active = $${paramCount}`;
+      params.push(is_active === 'true');
+    }
+    
+    if (trimester) {
+      paramCount++;
+      query += ` AND (trimester = $${paramCount} OR trimester IS NULL)`;
+      params.push(trimester);
+    }
+    
+    query += ' ORDER BY created_at DESC';
+    
+    const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching health tips:', err);
-    res.status(500).json({ error: 'Failed to fetch health tips' });
+    res.status(500).json({ error: 'Failed to fetch health tips', details: err.message });
   }
 });
 
-// Health Tips by ID
-app.get('/api/health_tips/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query('SELECT * FROM health_tips WHERE id = $1', [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Health tip not found' });
-    }
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error fetching health tip:', err);
-    res.status(500).json({ error: 'Failed to fetch health tip' });
-  }
-});
-
-app.put('/api/health_tips/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { title, content, target_stage, target_weeks, target_visits, weeks, category_type, is_active } = req.body;
-    const result = await pool.query(
-      `UPDATE health_tips SET
-        title = $1,
-        content = $2,
-        target_stage = $3,
-        target_weeks = $4,
-        target_visits = $5,
-        weeks = $6,
-        category_type = $7,
-        is_active = COALESCE($8, is_active)
-       WHERE id = $9 RETURNING *`,
-      [title, content, target_stage, target_weeks, target_visits, weeks, category_type, is_active, id]
-    );
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Health tip not found' });
-    }
-    res.json(result.rows[0]);
-  } catch (err) {
-    console.error('Error updating health tip:', err);
-    res.status(500).json({ error: 'Failed to update health tip' });
-  }
-});
-
-app.delete('/api/health_tips/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query('DELETE FROM health_tips WHERE id = $1 RETURNING *', [id]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: 'Health tip not found' });
-    }
-    res.json({ message: 'Health tip deleted', tip: result.rows[0] });
-  } catch (err) {
-    console.error('Error deleting health tip:', err);
-    res.status(500).json({ error: 'Failed to delete health tip' });
-  }
-});
-
-// Notifications Endpoints
+// Notifications Endpoints - Updated to match new schema
 app.post('/api/notifications', async (req, res) => {
   try {
-    const { title, message, target_categories, type, status, scheduled_at, trimester, visit, weeks, is_read } = req.body;
+    const { title, message, target_categories, type, status, scheduled_at, trimester, visit, weeks, is_read, patient_id, organization_id, recipient_id, fhir_resource } = req.body;
+    const fhirId = uuidv4();
+    const dakNotificationId = `dak-notification-${Date.now()}`;
+    
     const result = await pool.query(
       `INSERT INTO notifications
-        (title, message, target_categories, type, status, scheduled_at, trimester, visit, weeks, is_read)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, COALESCE($10, FALSE))
+        (fhir_id, dak_notification_id, patient_id, organization_id, title, message, target_categories, type, status, scheduled_at, trimester, visit, weeks, is_read, recipient_id, fhir_resource)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, COALESCE($14, FALSE), $15, $16)
        RETURNING *`,
-      [title, message, target_categories, type, status, scheduled_at, trimester, visit, weeks, is_read]
+      [
+        fhirId,
+        dakNotificationId,
+        patient_id || null,
+        organization_id || null,
+        title,
+        message,
+        target_categories || null,
+        type || 'general',
+        status || 'sent',
+        scheduled_at || null,
+        trimester || null,
+        visit || null,
+        weeks || null,
+        is_read,
+        recipient_id || null,
+        fhir_resource ? JSON.stringify(fhir_resource) : null
+      ]
     );
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error('Error creating notification:', err);
-    res.status(500).json({ error: 'Failed to create notification' });
+    res.status(500).json({ error: 'Failed to create notification', details: err.message });
   }
 });
 
 app.get('/api/notifications', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM notifications ORDER BY created_at DESC');
+    // Extract patient_id from JWT token
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    
+    if (!token) {
+      return res.status(401).json({ error: 'No token provided' });
+    }
+
+    let patientId = null;
+    let patientIdentifier = null;
+    let patientPhone = null;
+    
+    try {
+      const decoded = jwt.verify(token, SECRET_KEY);
+      patientId = decoded.id;
+      patientIdentifier = decoded.identifier;
+      patientPhone = decoded.phone;
+      
+      // Fallback: if token doesn't have id, try to resolve from identifier or phone
+      if (!patientId) {
+        if (patientIdentifier) {
+          const r = await pool.query('SELECT patient_id FROM patient WHERE identifier = $1', [patientIdentifier]);
+          if (r.rows.length > 0) patientId = r.rows[0].patient_id;
+        }
+        if (!patientId && patientPhone) {
+          const r = await pool.query('SELECT patient_id FROM patient WHERE phone = $1', [patientPhone]);
+          if (r.rows.length > 0) patientId = r.rows[0].patient_id;
+        }
+      }
+    } catch (jwtErr) {
+      console.error('JWT verification error:', jwtErr);
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    if (!patientId) {
+      return res.status(401).json({ error: 'Could not identify patient from token' });
+    }
+
+    // Get patient's current pregnancy data for filtering
+    const patientResult = await pool.query(
+      'SELECT patient_id, identifier FROM patient WHERE patient_id = $1',
+      [patientId]
+    );
+    
+    if (patientResult.rows.length === 0) {
+      return res.status(404).json({ error: 'Patient not found' });
+    }
+
+    const patient = patientResult.rows[0];
+    
+    // Get patient's current pregnancy info for filtering
+    const pregnancyResult = await pool.query(
+      'SELECT * FROM pregnancy WHERE patient_id = $1 ORDER BY created_at DESC LIMIT 1',
+      [patientId]
+    );
+    
+    const pregnancy = pregnancyResult.rows.length > 0 ? pregnancyResult.rows[0] : null;
+    
+    // Calculate trimester from gestational weeks (1-12 = first, 13-27 = second, 28+ = third)
+    let currentTrimester = null;
+    let currentWeeks = null;
+    if (pregnancy) {
+      // Use current_gestation_weeks if available, otherwise calculate from lmp_date
+      if (pregnancy.current_gestation_weeks) {
+        currentWeeks = pregnancy.current_gestation_weeks;
+      } else if (pregnancy.lmp_date) {
+        const lmpDate = new Date(pregnancy.lmp_date);
+        const now = new Date();
+        const diffTime = Math.abs(now - lmpDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        currentWeeks = Math.floor(diffDays / 7);
+      }
+      
+      // Calculate trimester from weeks
+      if (currentWeeks !== null) {
+        if (currentWeeks <= 12) {
+          currentTrimester = 'first';
+        } else if (currentWeeks <= 27) {
+          currentTrimester = 'second';
+        } else {
+          currentTrimester = 'third';
+        }
+      }
+    }
+    
+    // Get latest ANC visit number (join through pregnancy)
+    const ancVisitResult = await pool.query(
+      `SELECT av.visit_number 
+       FROM anc_visit av
+       JOIN pregnancy pr ON av.pregnancy_id = pr.pregnancy_id
+       WHERE pr.patient_id = $1 
+       ORDER BY av.visit_number DESC LIMIT 1`,
+      [patientId]
+    );
+    const latestVisitNumber = ancVisitResult.rows.length > 0 ? ancVisitResult.rows[0].visit_number : null;
+
+    // Query notifications - filter by patient-specific criteria
+    // Get notifications that match the patient's current state or are general notifications
+    const conditions = [
+      // Notifications for all patients (no specific targeting)
+      // Check if array is NULL or empty using PostgreSQL array functions
+      "(target_categories IS NULL OR array_length(target_categories, 1) IS NULL OR cardinality(target_categories) = 0)"
+    ];
+    const queryParams = [];
+    let paramIndex = 1;
+    
+    // Add trimester condition if available
+    if (currentTrimester) {
+      conditions.push(`(trimester IS NOT NULL AND trimester::text = $${paramIndex})`);
+      queryParams.push(currentTrimester);
+      paramIndex++;
+    }
+    
+    // Add visit condition if available
+    if (latestVisitNumber !== null) {
+      conditions.push(`(visit IS NOT NULL AND visit = $${paramIndex})`);
+      queryParams.push(latestVisitNumber);
+      paramIndex++;
+    }
+    
+    // Add weeks condition if available
+    if (currentWeeks !== null) {
+      conditions.push(`(weeks IS NOT NULL AND weeks = $${paramIndex})`);
+      queryParams.push(currentWeeks);
+      paramIndex++;
+    }
+    
+    const query = `
+      SELECT * FROM notifications 
+      WHERE (${conditions.join(' OR ')})
+      ORDER BY created_at DESC
+    `;
+    
+    // If notifications table has patient_id column, also filter by that
+    try {
+      const result = await pool.query(query, queryParams);
     res.json(result.rows);
+    } catch (queryErr) {
+      // If the query fails (e.g., table doesn't exist or column doesn't exist),
+      // try a simpler query
+      console.warn('Complex notification query failed, trying simple query:', queryErr.message);
+      try {
+        const simpleResult = await pool.query('SELECT * FROM notifications ORDER BY created_at DESC LIMIT 100');
+        res.json(simpleResult.rows);
+      } catch (simpleErr) {
+        // If table doesn't exist, return empty array
+        if (simpleErr.message.includes('does not exist') || simpleErr.message.includes('relation')) {
+          console.warn('Notifications table does not exist, returning empty array');
+          res.json([]);
+        } else {
+          throw simpleErr;
+        }
+      }
+    }
   } catch (err) {
     console.error('Error fetching notifications:', err);
-    res.status(500).json({ error: 'Failed to fetch notifications' });
+    res.status(500).json({ error: 'Failed to fetch notifications', details: err.message });
   }
 });
 
@@ -4084,19 +5211,20 @@ app.get('/api/notifications/:id', async (req, res) => {
 app.put('/api/notifications/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, message, target_categories, type, status, scheduled_at, trimester, visit, weeks, is_read } = req.body;
+    const { title, message, target_categories, type, status, scheduled_at, trimester, visit, weeks, is_read, read_at } = req.body;
     const result = await pool.query(
       `UPDATE notifications SET
-        title = $1,
-        message = $2,
-        target_categories = $3,
-        type = $4,
-        status = $5,
-        scheduled_at = $6,
-        trimester = $7,
-        visit = $8,
-        weeks = $9,
-        is_read = COALESCE($10, is_read)
+        title = COALESCE($1, title),
+        message = COALESCE($2, message),
+        target_categories = COALESCE($3, target_categories),
+        type = COALESCE($4, type),
+        status = COALESCE($5, status),
+        scheduled_at = COALESCE($6, scheduled_at),
+        trimester = COALESCE($7, trimester),
+        visit = COALESCE($8, visit),
+        weeks = COALESCE($9, weeks),
+        is_read = COALESCE($10, is_read),
+        read_at = CASE WHEN $10 = TRUE AND read_at IS NULL THEN NOW() ELSE read_at END
        WHERE id = $11 RETURNING *`,
       [title, message, target_categories, type, status, scheduled_at, trimester, visit, weeks, is_read, id]
     );
@@ -4106,7 +5234,7 @@ app.put('/api/notifications/:id', async (req, res) => {
     res.json(result.rows[0]);
   } catch (err) {
     console.error('Error updating notification:', err);
-    res.status(500).json({ error: 'Failed to update notification' });
+    res.status(500).json({ error: 'Failed to update notification', details: err.message });
   }
 });
 
@@ -4329,7 +5457,7 @@ app.get('/admin/analytics', async (req, res) => {
   }
 });
 
-// ✅ Global error handler
+// Global error handler
 app.use((err, req, res, next) => {
   console.error('Global error handler:', err);
   res.status(500).json({ 
@@ -4338,19 +5466,22 @@ app.use((err, req, res, next) => {
   });
 });
 
-// ✅ 404 handler
+// 404 handler
 app.use('*', (req, res) => {
   res.status(404).json({ error: 'Route not found' });
 });
 
-// ✅ Start Server - MUST be at the end after all routes are defined
+// Start Server - MUST be at the end after all routes are defined
 const PORT = process.env.PORT || 3000;
 
 // Debug port configuration
-console.log('🔧 Port Configuration:');
-console.log('  - process.env.PORT:', process.env.PORT);
-console.log('  - Final PORT:', PORT);
-console.log('  - NODE_ENV:', process.env.NODE_ENV);
+if (process.env.NODE_ENV !== 'production') {
+  console.log('Port Configuration:', {
+    envPort: process.env.PORT,
+    finalPort: PORT,
+    nodeEnv: process.env.NODE_ENV
+  });
+}
 
 // Add error handling for server startup
 process.on('uncaughtException', (error) => {
@@ -4371,24 +5502,22 @@ process.on('unhandledRejection', (reason, promise) => {
 
 try {
   const server = app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 FHIR server running on port ${PORT}`);
-    console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`🔗 Database URL: ${process.env.DATABASE_URL ? 'Set' : 'Not set'}`);
-    console.log(`🌐 Server ready at http://0.0.0.0:${PORT}`);
-    console.log(`✅ All routes registered successfully`);
-    console.log(`🔧 Railway deployment ready!`);
+    console.log(`FHIR server running on port ${PORT}`);
+    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
+    console.log(`Database URL: ${process.env.DATABASE_URL ? 'Set' : 'Not set'}`);
+    console.log(`Server ready at http://0.0.0.0:${PORT}`);
   });
 
   // Handle server errors
   server.on('error', (error) => {
-    console.error('❌ Server error:', error);
+    console.error('Server error:', error);
     if (error.code === 'EADDRINUSE') {
-      console.error(`❌ Port ${PORT} is already in use`);
+      console.error(`Port ${PORT} is already in use`);
     }
     process.exit(1);
   });
 
 } catch (error) {
-  console.error('❌ Failed to start server:', error);
+  console.error('Failed to start server:', error);
   process.exit(1);
 }
