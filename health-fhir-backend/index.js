@@ -32,11 +32,25 @@ app.use(cors({
   origin: function (origin, callback) {
     // allow requests with no origin (like mobile apps, curl, etc.)
     if (!origin) return callback(null, true);
+    
+    // Allow exact matches
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
-    } else {
-      return callback(new Error('Not allowed by CORS'));
     }
+    
+    // Allow all Railway domains
+    if (origin.endsWith('.railway.app')) {
+      return callback(null, true);
+    }
+    
+    // Allow all Vercel domains
+    if (origin.endsWith('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    // Log blocked origins to help debug
+    console.log('CORS blocked origin:', origin);
+    return callback(new Error('Not allowed by CORS'));
   },
   credentials: true
 }));
