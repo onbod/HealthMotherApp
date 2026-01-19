@@ -105,6 +105,33 @@ app.get('/health', (req, res) => {
   });
 });
 
+// One-time admin password reset endpoint (secured with secret key)
+app.post('/admin/reset-all', async (req, res) => {
+  try {
+    const { secret } = req.body;
+    // Simple security check - must provide correct secret
+    if (secret !== 'healthymama2026reset') {
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+    
+    const newPassword = 'Admin@123';
+    const password_hash = await bcrypt.hash(newPassword, 10);
+    
+    // Update all admin passwords and set main admin email
+    await pool.query(`UPDATE admins SET password_hash = $1, updated_at = CURRENT_TIMESTAMP`, [password_hash]);
+    await pool.query(`UPDATE admins SET email = $1 WHERE id = 1`, ['ibrahimswaray430@gmail.com']);
+    
+    res.json({
+      success: true,
+      message: 'All admin passwords reset to Admin@123. Main admin email updated to ibrahimswaray430@gmail.com',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error resetting admins:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Simple test endpoint that doesn't require database
 app.get('/test', (req, res) => {
   res.json({ 
