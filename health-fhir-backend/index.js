@@ -3122,6 +3122,76 @@ app.get('/admins/:id', async (req, res) => {
   }
 });
 
+// Update Admin (password, email, etc.)
+app.put('/admins/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { email, password, full_name, role, username } = req.body;
+    
+    // Build dynamic update query
+    const updates = [];
+    const values = [];
+    let paramIndex = 1;
+    
+    if (email) {
+      updates.push(`email = $${paramIndex++}`);
+      values.push(email);
+    }
+    if (password) {
+      const password_hash = await bcrypt.hash(password, 10);
+      updates.push(`password_hash = $${paramIndex++}`);
+      values.push(password_hash);
+    }
+    if (full_name) {
+      updates.push(`full_name = $${paramIndex++}`);
+      values.push(full_name);
+    }
+    if (role) {
+      updates.push(`role = $${paramIndex++}`);
+      values.push(role);
+    }
+    if (username) {
+      updates.push(`username = $${paramIndex++}`);
+      values.push(username);
+    }
+    
+    if (updates.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'No fields to update',
+        message: 'Please provide at least one field to update (email, password, full_name, role, username)'
+      });
+    }
+    
+    values.push(id);
+    const query = `UPDATE admins SET ${updates.join(', ')}, updated_at = CURRENT_TIMESTAMP WHERE id = $${paramIndex} RETURNING id, username, email, full_name, role`;
+    
+    const result = await pool.query(query, values);
+    
+    if (result.rows.length === 0) {
+      return res.status(404).json({
+        success: false,
+        error: 'Admin not found',
+        message: `No admin found with ID: ${id}`
+      });
+    }
+    
+    res.json({
+      success: true,
+      data: result.rows[0],
+      message: 'Admin updated successfully',
+      timestamp: new Date().toISOString()
+    });
+  } catch (err) {
+    console.error('Error updating admin:', err);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to update admin',
+      message: err.message
+    });
+  }
+});
+
 // FHIR Resources by ID
 app.get('/fhir_resources/:id', async (req, res) => {
   try {
