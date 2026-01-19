@@ -23,7 +23,9 @@ const allowedOrigins = [
   'http://localhost:59016',
   'http://localhost:3001',
   'https://healthymama-admin-dashboard.vercel.app',
-  'https://healthymotherapp.vercel.app'
+  'https://healthymotherapp.vercel.app',
+  'https://medilink-7c48f.web.app',
+  'https://medilink-7c48f.firebaseapp.com'
 ];
 
 app.use(cors({
