@@ -458,6 +458,9 @@ The Admin Dashboard is a modern, responsive web application built with **Next.js
 - **Detailed Profiles**: Comprehensive patient information and medical history
 - **Visit Records**: Complete ANC visit history and documentation
 - **Risk Assessment**: Automated risk scoring and alerts
+- **Gestational Age Tracking**: Intelligent calculation using multiple data sources (latest visit, current assessment, LMP)
+- **Delivery Statistics**: Accurate counting of total deliveries per patient
+- **Status Indicators**: Real-time patient status (Active, Delivered) based on pregnancy data
 
 #### Referral System
 - **Referral Tracking**: Manage patient referrals and follow-ups
@@ -624,6 +627,8 @@ The Admin Dashboard is a modern, responsive web application built with **Next.js
 - **Platforms:** Android, iOS, Web
 - **State Management:** Provider pattern
 - **Navigation:** Flutter navigation 2.0
+- **Splash Screen:** Custom centered logo with white background (configurable via splash.yaml)
+- **App Icon:** Custom branding with HealthyMother logo
 
 ## Deployment
 

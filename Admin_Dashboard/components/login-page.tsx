@@ -268,7 +268,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onLoginSuccess }) => {
                   <div className="bg-gradient-to-r from-maternal-green-50 to-maternal-blue-50 p-3 sm:p-4 rounded-lg border border-maternal-green-200">
                     <div className="font-mono text-xs sm:text-sm text-maternal-brown-700 space-y-1">
                       <div>
-                        <span className="font-medium text-maternal-brown-600">APP Admin:</span> ibrahimswaray430@gmail.com / dauda2019
+                        <span className="font-medium text-maternal-brown-600">APP Admin:</span> ibrahimswaray430@gmail.com / Admin@123
                       </div>
                     </div>
                   </div>
