@@ -142,19 +142,29 @@ const calculateAge = (birthDate: string) => {
 const defaultAppointments = 8;
 const todayStr = new Date().toISOString();
 
-// Typed fetch hook
+// Typed fetch hook with authentication
 export function useFetch<T = any[]>(endpoint: string): T {
   const [data, setData] = useState<T>([] as unknown as T);
   useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('adminToken') : '';
     console.log('useFetch calling:', getApiUrl(endpoint));
-    fetch(getApiUrl(endpoint))
+    fetch(getApiUrl(endpoint), {
+      headers: token ? { Authorization: `Bearer ${token}` } : {}
+    })
       .then(res => {
         console.log('useFetch response status:', res.status, 'for endpoint:', endpoint);
         return res.ok ? res.json() : [];
       })
       .then(res => {
         console.log('useFetch', endpoint, 'response:', res); // Debug log
-        setData((Array.isArray(res) ? res : []) as T);
+        // Handle both array responses and { success: true, data: [...] } format
+        let resultData: any[] = [];
+        if (Array.isArray(res)) {
+          resultData = res;
+        } else if (res && res.data && Array.isArray(res.data)) {
+          resultData = res.data;
+        }
+        setData(resultData as T);
       })
       .catch((error) => {
         console.error('useFetch error for endpoint:', endpoint, error);
@@ -187,7 +197,7 @@ function mapApiPatientToFrontend(patient: any) {
 // ANC Visit Cards for a Patient
 export function PatientVisitsTabs({ patientId, patientName }: { patientId: number, patientName?: string }) {
   const ancVisits = useFetch<any[]>('/api/anc_visit');
-  const postnatalVisits = useFetch<any[]>('/api/postnatal_visit');
+  const postnatalVisits = useFetch<any[]>('/api/postnatal_care');
   const deliveries = useFetch<any[]>('/api/delivery');
   const [tab, setTab] = useState<'anc' | 'postnatal' | 'delivery'>('anc');
 
@@ -195,67 +205,152 @@ export function PatientVisitsTabs({ patientId, patientName }: { patientId: numbe
   const [selectedVisit, setSelectedVisit] = useState<any | null>(null);
   const [isVisitModalOpen, setIsVisitModalOpen] = useState(false);
 
+  // Track loading state - we're loading if we haven't received any data yet
+  const [hasLoaded, setHasLoaded] = useState(false);
+  
+  useEffect(() => {
+    // Once we have any data (even empty arrays from successful API calls), mark as loaded
+    if (ancVisits.length >= 0 || postnatalVisits.length >= 0 || deliveries.length >= 0) {
+      // Small delay to ensure all data has been fetched
+      const timer = setTimeout(() => setHasLoaded(true), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [ancVisits, postnatalVisits, deliveries]);
+  
+  const isLoading = !hasLoaded;
+
   // Use patient's numeric id to filter visits by patient_id
-  const patientAncVisits = Array.isArray(ancVisits) && patientId
-    ? ancVisits.filter((v: any) => v.patient_id === patientId)
+  // Compare as numbers to handle type mismatches (string vs number)
+  const patientIdNum = Number(patientId);
+  const patientAncVisits = Array.isArray(ancVisits) && patientIdNum
+    ? ancVisits.filter((v: any) => Number(v.patient_id) === patientIdNum)
     : [];
-  const maxVisit = Math.max(0, ...patientAncVisits.map((v: any) => Number(v.visit_number)));
+  
+  // Build a map of visit_number -> visit data
+  // visit_number can be stored in visit_number or dak_contact_number field
   const ancByNumber: Record<number, any> = {};
-  patientAncVisits.forEach((v: any) => { ancByNumber[Number(v.visit_number)] = v; });
-  const patientPostnatal = Array.isArray(postnatalVisits) && patientId
-    ? postnatalVisits.filter((v: any) => v.patient_id === patientId)
+  patientAncVisits.forEach((v: any) => { 
+    const visitNum = Number(v.visit_number) || Number(v.dak_contact_number);
+    if (visitNum >= 1 && visitNum <= 8) {
+      ancByNumber[visitNum] = v; 
+    }
+  });
+  
+  // Count of completed visits (unique visit numbers with data)
+  const completedVisits = Object.keys(ancByNumber).length;
+  
+  const patientPostnatal = Array.isArray(postnatalVisits) && patientIdNum
+    ? postnatalVisits.filter((v: any) => Number(v.patient_id) === patientIdNum)
     : [];
-  const patientDeliveries = Array.isArray(deliveries) && patientId
-    ? deliveries.filter((d: any) => d.patient_id === patientId)
+  const patientDeliveries = Array.isArray(deliveries) && patientIdNum
+    ? deliveries.filter((d: any) => Number(d.patient_id) === patientIdNum)
     : [];
+  
+  // Debug logging - show all visit patient_ids to help diagnose
+  console.log('=== PatientVisitsTabs Debug ===');
+  console.log('patientId prop:', patientId, 'type:', typeof patientId, '-> patientIdNum:', patientIdNum);
+  console.log('All ANC visits from API:', ancVisits.length);
+  if (ancVisits.length > 0) {
+    console.log('First ANC visit sample:', JSON.stringify(ancVisits[0], null, 2));
+    console.log('All unique patient_ids in ANC visits:', [...new Set(ancVisits.map((v: any) => v.patient_id))]);
+  }
+  console.log('Filtered patientAncVisits for patient', patientIdNum, ':', patientAncVisits.length);
+  console.log('ancByNumber (visit_number -> visit):', ancByNumber);
+  console.log('Deliveries for patient:', patientDeliveries.length);
+  console.log('=== End Debug ===');
 
   return (
     <div>
+      {/* Header with visit summary */}
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">Patient Visits</h3>
+        <div className="text-sm text-gray-500">
+          {completedVisits > 0 ? (
+            <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+              {completedVisits}/8 ANC visits completed
+            </span>
+          ) : (
+            <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-full text-xs font-medium">
+              No visits recorded yet
+            </span>
+          )}
+        </div>
+      </div>
+
       {/* Tabs */}
       <div className="flex space-x-4 border-b mb-6">
-        <button className={tab === 'anc' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-500'}
-          onClick={() => setTab('anc')}>ANC Visits</button>
-        <button className={tab === 'postnatal' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-500'}
-          onClick={() => setTab('postnatal')}>Postnatal Visits</button>
-        <button className={tab === 'delivery' ? 'border-b-2 border-blue-600 font-semibold' : 'text-gray-500'}
-          onClick={() => setTab('delivery')}>Delivery</button>
+        <button className={`pb-2 px-1 ${tab === 'anc' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => setTab('anc')}>ANC Visits ({completedVisits})</button>
+        <button className={`pb-2 px-1 ${tab === 'postnatal' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => setTab('postnatal')}>Postnatal ({patientPostnatal.length})</button>
+        <button className={`pb-2 px-1 ${tab === 'delivery' ? 'border-b-2 border-blue-600 font-semibold text-blue-600' : 'text-gray-500 hover:text-gray-700'}`}
+          onClick={() => setTab('delivery')}>Delivery ({patientDeliveries.length})</button>
       </div>
 
       {/* ANC Visits: 8 Cards */}
-      {tab === 'anc' && (
+      {tab === 'anc' && isLoading && (
+        <div className="text-center py-8 text-gray-500">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
+          Loading visit data...
+        </div>
+      )}
+      {tab === 'anc' && !isLoading && (
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[1,2,3,4,5,6,7,8].map(num => {
             const visit = ancByNumber[num];
-            const isUnlocked = num <= maxVisit;
+            // A visit is unlocked/completed if data exists for this visit number
+            const isCompleted = !!visit;
             return (
               <div
                 key={num}
-                className={`bg-white rounded-lg shadow p-4 flex flex-col items-center border border-gray-100 relative ${isUnlocked && visit ? "cursor-pointer hover:shadow-lg" : "opacity-60"}`}
+                className={`rounded-lg shadow p-4 flex flex-col items-center border relative transition-all duration-200 min-h-[140px] ${
+                  isCompleted 
+                    ? "bg-white cursor-pointer hover:shadow-lg hover:border-blue-300 hover:bg-blue-50 border-green-200" 
+                    : "bg-gray-50 border-gray-200 opacity-70"
+                }`}
                 onClick={() => {
-                  if (isUnlocked && visit) {
+                  if (isCompleted) {
                     setSelectedVisit(visit);
                     setIsVisitModalOpen(true);
                   }
                 }}
-                style={{ pointerEvents: isUnlocked && visit ? "auto" : "none" }}
               >
                 {/* Padlock icon */}
                 <div className="absolute top-2 right-2">
-                  {isUnlocked ? (
+                  {isCompleted ? (
                     <Unlock className="h-5 w-5 text-green-500" />
                   ) : (
                     <Lock className="h-5 w-5 text-gray-400" />
                   )}
                 </div>
-                <div className="text-xs text-gray-500 mb-1">Visit {num}</div>
-                {visit ? (
+                <div className={`text-xs mb-1 font-medium ${isCompleted ? 'text-blue-600' : 'text-gray-500'}`}>
+                  Visit {num}
+                </div>
+                {isCompleted ? (
                   <>
-                    <div className="font-bold text-lg text-blue-700">{visit.visit_date ? new Date(visit.visit_date).toLocaleDateString() : '—'}</div>
-                    <div className="text-sm mt-2">BP: {visit.systolic_bp}/{visit.diastolic_bp}</div>
-                    <div className="text-sm">Weight: {visit.weight} kg</div>
+                    <div className="font-bold text-lg text-blue-700">
+                      {visit.visit_date ? new Date(visit.visit_date).toLocaleDateString() : '—'}
+                    </div>
+                    <div className="text-xs text-gray-500 mt-1">
+                      {visit.gestation_weeks ? `${visit.gestation_weeks} weeks` : ''}
+                    </div>
+                    <div className="text-sm mt-2">
+                      BP: {visit.blood_pressure_systolic || '—'}/{visit.blood_pressure_diastolic || '—'}
+                    </div>
+                    <div className="text-sm">
+                      Weight: {visit.weight_kg || '—'} kg
+                    </div>
+                    <div className="text-xs text-green-600 mt-2 font-medium flex items-center gap-1">
+                      <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                      Completed
+                    </div>
                   </>
                 ) : (
-                  <div className="text-gray-400 text-sm mt-4">No data</div>
+                  <div className="flex flex-col items-center justify-center flex-1">
+                    <Lock className="h-8 w-8 text-gray-300 mb-2" />
+                    <div className="text-gray-400 text-sm">Not recorded</div>
+                    <div className="text-xs text-gray-400 mt-1">Locked</div>
+                  </div>
                 )}
               </div>
             );
@@ -265,7 +360,7 @@ export function PatientVisitsTabs({ patientId, patientName }: { patientId: numbe
 
       {/* Visit Details Modal */}
       <Dialog open={isVisitModalOpen} onOpenChange={setIsVisitModalOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
               <div className="flex items-center gap-3 mb-2">
@@ -275,26 +370,134 @@ export function PatientVisitsTabs({ patientId, patientName }: { patientId: numbe
                 </span>
                 <div>
                   <div className="text-lg font-bold text-gray-900">
-                    {patientName || 'Patient'}
+                    {patientName || selectedVisit?.patient_name || 'Patient'}
                   </div>
                   <div className="text-sm text-gray-600 font-medium">
-                    Visit {selectedVisit?.visit_number ? `#${selectedVisit.visit_number}` : ''} Details
+                    ANC Visit #{selectedVisit?.visit_number || selectedVisit?.dak_contact_number || ''} - {selectedVisit?.visit_date ? new Date(selectedVisit.visit_date).toLocaleDateString() : ''}
                   </div>
                 </div>
               </div>
             </DialogTitle>
           </DialogHeader>
           {selectedVisit ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto">
-              {Object.entries(selectedVisit).map(([key, value]) => (
-                <div key={key} className="border rounded-lg bg-gray-50 p-3 flex flex-col mb-1">
-                  <span className="font-semibold text-gray-700 mb-1 text-xs uppercase tracking-wide">{prettifyKey(key)}</span>
-                  <span className="text-gray-900 text-sm break-all">{typeof value === 'object' && value !== null ? JSON.stringify(value) : String(value)}</span>
+            <div className="space-y-6">
+              {/* Visit Info */}
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h4 className="font-semibold text-blue-800 mb-3">Visit Information</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                  <div><span className="text-gray-600">Date:</span> <span className="font-medium">{selectedVisit.visit_date ? new Date(selectedVisit.visit_date).toLocaleDateString() : '—'}</span></div>
+                  <div><span className="text-gray-600">Gestation:</span> <span className="font-medium">{selectedVisit.gestation_weeks || selectedVisit.gestational_age || '—'} weeks</span></div>
+                  <div><span className="text-gray-600">Contact #:</span> <span className="font-medium">{selectedVisit.dak_contact_number || selectedVisit.visit_number || '—'}</span></div>
                 </div>
-              ))}
+              </div>
+
+              {/* Vital Signs */}
+              <div className="bg-green-50 rounded-lg p-4">
+                <h4 className="font-semibold text-green-800 mb-3">Vital Signs</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  <div><span className="text-gray-600">BP:</span> <span className="font-medium">{selectedVisit.blood_pressure_systolic || '—'}/{selectedVisit.blood_pressure_diastolic || '—'} mmHg</span></div>
+                  <div><span className="text-gray-600">Weight:</span> <span className="font-medium">{selectedVisit.weight_kg || '—'} kg</span></div>
+                  <div><span className="text-gray-600">Height:</span> <span className="font-medium">{selectedVisit.height_cm || '—'} cm</span></div>
+                  <div><span className="text-gray-600">BMI:</span> <span className="font-medium">{selectedVisit.bmi || '—'}</span></div>
+                  <div><span className="text-gray-600">Pulse:</span> <span className="font-medium">{selectedVisit.pulse_rate || '—'} bpm</span></div>
+                  <div><span className="text-gray-600">Temperature:</span> <span className="font-medium">{selectedVisit.temperature || '—'}°C</span></div>
+                  <div><span className="text-gray-600">Resp. Rate:</span> <span className="font-medium">{selectedVisit.respiratory_rate || '—'}/min</span></div>
+                </div>
+              </div>
+
+              {/* Obstetric Measurements */}
+              <div className="bg-pink-50 rounded-lg p-4">
+                <h4 className="font-semibold text-pink-800 mb-3">Obstetric Measurements</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  <div><span className="text-gray-600">Fundal Height:</span> <span className="font-medium">{selectedVisit.fundal_height_cm || '—'} cm</span></div>
+                  <div><span className="text-gray-600">Fetal Heart Rate:</span> <span className="font-medium">{selectedVisit.fetal_heart_rate || '—'} bpm</span></div>
+                  <div><span className="text-gray-600">Fetal Position:</span> <span className="font-medium">{selectedVisit.fetal_position || '—'}</span></div>
+                  <div><span className="text-gray-600">Fetal Movement:</span> <span className="font-medium">{selectedVisit.fetal_movement === true ? 'Yes' : selectedVisit.fetal_movement === false ? 'No' : '—'}</span></div>
+                </div>
+              </div>
+
+              {/* Laboratory Results */}
+              <div className="bg-purple-50 rounded-lg p-4">
+                <h4 className="font-semibold text-purple-800 mb-3">Laboratory Results</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  <div><span className="text-gray-600">Hemoglobin:</span> <span className="font-medium">{selectedVisit.hemoglobin_gdl || '—'} g/dL</span></div>
+                  <div><span className="text-gray-600">Blood Group:</span> <span className="font-medium">{selectedVisit.blood_group || '—'} {selectedVisit.rhesus_factor || ''}</span></div>
+                  <div><span className="text-gray-600">Urine Protein:</span> <span className="font-medium">{selectedVisit.urine_protein || '—'}</span></div>
+                  <div><span className="text-gray-600">Urine Glucose:</span> <span className="font-medium">{selectedVisit.urine_glucose || '—'}</span></div>
+                </div>
+              </div>
+
+              {/* Test Results */}
+              <div className="bg-orange-50 rounded-lg p-4">
+                <h4 className="font-semibold text-orange-800 mb-3">Test Results</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+                  <div><span className="text-gray-600">HIV Test:</span> <span className={`font-medium ${selectedVisit.hiv_test_result === 'positive' ? 'text-red-600' : ''}`}>{selectedVisit.hiv_test_done ? (selectedVisit.hiv_test_result || 'Done') : 'Not done'}</span></div>
+                  <div><span className="text-gray-600">Syphilis:</span> <span className={`font-medium ${selectedVisit.syphilis_test_result === 'positive' ? 'text-red-600' : ''}`}>{selectedVisit.syphilis_test_done ? (selectedVisit.syphilis_test_result || 'Done') : 'Not done'}</span></div>
+                  <div><span className="text-gray-600">Hepatitis B:</span> <span className={`font-medium ${selectedVisit.hepatitis_b_test_result === 'positive' ? 'text-red-600' : ''}`}>{selectedVisit.hepatitis_b_test_done ? (selectedVisit.hepatitis_b_test_result || 'Done') : 'Not done'}</span></div>
+                  <div><span className="text-gray-600">Malaria:</span> <span className={`font-medium ${selectedVisit.malaria_test_result === 'positive' ? 'text-red-600' : ''}`}>{selectedVisit.malaria_test_done ? (selectedVisit.malaria_test_result || 'Done') : 'Not done'}</span></div>
+                </div>
+              </div>
+
+              {/* Risk Assessment */}
+              {(selectedVisit.risk_level || selectedVisit.danger_signs_present) && (
+                <div className={`rounded-lg p-4 ${selectedVisit.risk_level === 'high' ? 'bg-red-50' : selectedVisit.risk_level === 'medium' ? 'bg-yellow-50' : 'bg-gray-50'}`}>
+                  <h4 className={`font-semibold mb-3 ${selectedVisit.risk_level === 'high' ? 'text-red-800' : selectedVisit.risk_level === 'medium' ? 'text-yellow-800' : 'text-gray-800'}`}>Risk Assessment</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div><span className="text-gray-600">Risk Level:</span> <span className={`font-medium px-2 py-1 rounded ${selectedVisit.risk_level === 'high' ? 'bg-red-200 text-red-800' : selectedVisit.risk_level === 'medium' ? 'bg-yellow-200 text-yellow-800' : 'bg-green-200 text-green-800'}`}>{selectedVisit.risk_level ? selectedVisit.risk_level.charAt(0).toUpperCase() + selectedVisit.risk_level.slice(1) : 'Low'}</span></div>
+                    <div><span className="text-gray-600">Danger Signs:</span> <span className="font-medium">{selectedVisit.danger_signs_present ? 'Yes' : 'No'}</span></div>
+                    {selectedVisit.danger_signs_list && <div className="col-span-2"><span className="text-gray-600">Signs:</span> <span className="font-medium">{selectedVisit.danger_signs_list}</span></div>}
+                    {selectedVisit.risk_factors && <div className="col-span-2"><span className="text-gray-600">Risk Factors:</span> <span className="font-medium">{Array.isArray(selectedVisit.risk_factors) ? selectedVisit.risk_factors.join(', ') : selectedVisit.risk_factors}</span></div>}
+                  </div>
+                </div>
+              )}
+
+              {/* Medications & Supplements */}
+              <div className="bg-teal-50 rounded-lg p-4">
+                <h4 className="font-semibold text-teal-800 mb-3">Medications & Supplements</h4>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-sm">
+                  <div><span className="text-gray-600">Iron Supplement:</span> <span className="font-medium">{selectedVisit.iron_supplement_given ? `Yes${selectedVisit.iron_supplement_dosage ? ` (${selectedVisit.iron_supplement_dosage})` : ''}` : 'No'}</span></div>
+                  <div><span className="text-gray-600">Folic Acid:</span> <span className="font-medium">{selectedVisit.folic_acid_given ? `Yes${selectedVisit.folic_acid_dosage ? ` (${selectedVisit.folic_acid_dosage})` : ''}` : 'No'}</span></div>
+                  <div><span className="text-gray-600">Tetanus Toxoid:</span> <span className="font-medium">{selectedVisit.tetanus_toxoid_given ? `Yes (Dose ${selectedVisit.tetanus_toxoid_dose || ''})` : 'No'}</span></div>
+                  <div><span className="text-gray-600">Malaria Prophylaxis:</span> <span className="font-medium">{selectedVisit.malaria_prophylaxis_given ? `Yes${selectedVisit.malaria_prophylaxis_type ? ` (${selectedVisit.malaria_prophylaxis_type})` : ''}` : 'No'}</span></div>
+                  <div><span className="text-gray-600">Deworming:</span> <span className="font-medium">{selectedVisit.deworming_given ? `Yes${selectedVisit.deworming_type ? ` (${selectedVisit.deworming_type})` : ''}` : 'No'}</span></div>
+                </div>
+              </div>
+
+              {/* Clinical Notes */}
+              {(selectedVisit.maternal_complaints || selectedVisit.clinical_impression || selectedVisit.plan_of_care || selectedVisit.provider_notes) && (
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-gray-800 mb-3">Clinical Notes</h4>
+                  <div className="space-y-2 text-sm">
+                    {selectedVisit.maternal_complaints && <div><span className="text-gray-600 font-medium">Complaints:</span> <p className="mt-1">{selectedVisit.maternal_complaints}</p></div>}
+                    {selectedVisit.clinical_impression && <div><span className="text-gray-600 font-medium">Clinical Impression:</span> <p className="mt-1">{selectedVisit.clinical_impression}</p></div>}
+                    {selectedVisit.plan_of_care && <div><span className="text-gray-600 font-medium">Plan of Care:</span> <p className="mt-1">{selectedVisit.plan_of_care}</p></div>}
+                    {selectedVisit.provider_notes && <div><span className="text-gray-600 font-medium">Provider Notes:</span> <p className="mt-1">{selectedVisit.provider_notes}</p></div>}
+                  </div>
+                </div>
+              )}
+
+              {/* Follow-up Info */}
+              {(selectedVisit.next_visit_date || selectedVisit.referral_made) && (
+                <div className="bg-indigo-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-indigo-800 mb-3">Follow-up</h4>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    {selectedVisit.next_visit_date && <div><span className="text-gray-600">Next Visit:</span> <span className="font-medium">{new Date(selectedVisit.next_visit_date).toLocaleDateString()}</span></div>}
+                    {selectedVisit.next_visit_gestation_weeks && <div><span className="text-gray-600">At Gestation:</span> <span className="font-medium">{selectedVisit.next_visit_gestation_weeks} weeks</span></div>}
+                    {selectedVisit.referral_made !== undefined && <div><span className="text-gray-600">Referral Made:</span> <span className="font-medium">{selectedVisit.referral_made ? 'Yes' : 'No'}</span></div>}
+                  </div>
+                </div>
+              )}
+
+              {/* Provider Info */}
+              {selectedVisit.provider_name && (
+                <div className="text-sm text-gray-500 pt-2 border-t">
+                  <span>Recorded by: {selectedVisit.provider_name}</span>
+                  {selectedVisit.provider_qualification && <span> ({selectedVisit.provider_qualification})</span>}
+                </div>
+              )}
             </div>
           ) : (
-            <div>No data available for this visit.</div>
+            <div className="text-center py-8 text-gray-500">No data available for this visit.</div>
           )}
         </DialogContent>
       </Dialog>
@@ -306,18 +509,24 @@ export function PatientVisitsTabs({ patientId, patientName }: { patientId: numbe
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Visit #</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Notes</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Days Postpartum</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">BP</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Weight (kg)</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Complaints</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {patientPostnatal.length === 0 ? (
-                <tr><td colSpan={3} className="text-center text-gray-400 py-4">No postnatal visits available.</td></tr>
+                <tr><td colSpan={6} className="text-center text-gray-400 py-4">No postnatal visits available.</td></tr>
               ) : (
                 patientPostnatal.map((v: any, i: number) => (
-                  <tr key={i}>
-                    <td className="px-4 py-2">{v.visit_number}</td>
+                  <tr key={i} className="hover:bg-gray-50">
+                    <td className="px-4 py-2">{v.pnc_visit_number || v.visit_number || i + 1}</td>
                     <td className="px-4 py-2">{v.visit_date ? new Date(v.visit_date).toLocaleDateString() : '—'}</td>
-                    <td className="px-4 py-2">{v.notes || '—'}</td>
+                    <td className="px-4 py-2">{v.days_postpartum || '—'}</td>
+                    <td className="px-4 py-2">{v.maternal_bp_systolic && v.maternal_bp_diastolic ? `${v.maternal_bp_systolic}/${v.maternal_bp_diastolic}` : '—'}</td>
+                    <td className="px-4 py-2">{v.maternal_weight_kg || '—'}</td>
+                    <td className="px-4 py-2">{v.maternal_complaints || '—'}</td>
                   </tr>
                 ))
               )}
@@ -333,19 +542,33 @@ export function PatientVisitsTabs({ patientId, patientName }: { patientId: numbe
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Delivery Date</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Mode</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Outcome</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Baby Weight (g)</th>
+                <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Baby Sex</th>
                 <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Facility</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-100">
               {patientDeliveries.length === 0 ? (
-                <tr><td colSpan={3} className="text-center text-gray-400 py-4">No delivery records available.</td></tr>
+                <tr><td colSpan={6} className="text-center text-gray-400 py-4">No delivery records available.</td></tr>
               ) : (
                 patientDeliveries.map((d: any, i: number) => (
-                  <tr key={i}>
+                  <tr key={i} className="hover:bg-gray-50">
                     <td className="px-4 py-2">{d.delivery_date ? new Date(d.delivery_date).toLocaleDateString() : '—'}</td>
-                    <td className="px-4 py-2">{d.outcome || '—'}</td>
-                    <td className="px-4 py-2">{d.facility_name || '—'}</td>
+                    <td className="px-4 py-2">{d.delivery_mode ? d.delivery_mode.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) : '—'}</td>
+                    <td className="px-4 py-2">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        d.delivery_outcome === 'live_birth' ? 'bg-green-100 text-green-800' :
+                        d.delivery_outcome === 'stillbirth' ? 'bg-red-100 text-red-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {d.delivery_outcome ? d.delivery_outcome.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) : '—'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">{d.birth_weight_grams || '—'}</td>
+                    <td className="px-4 py-2">{d.sex ? d.sex.replace(/\b\w/g, (l: string) => l.toUpperCase()) : '—'}</td>
+                    <td className="px-4 py-2">{d.delivery_facility || d.facility_name || '—'}</td>
                   </tr>
                 ))
               )}

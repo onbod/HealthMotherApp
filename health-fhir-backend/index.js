@@ -947,7 +947,60 @@ app.get('/api/anc_visit', async (req, res) => {
   try {
     const result = await pool.query(`
       SELECT 
-        av.*,
+        av.anc_visit_id,
+        av.fhir_id,
+        av.encounter_id,
+        av.pregnancy_id,
+        av.visit_number,
+        av.visit_date,
+        av.gestation_weeks,
+        av.weight_kg,
+        av.height_cm,
+        av.bmi,
+        av.blood_pressure_systolic,
+        av.blood_pressure_diastolic,
+        av.pulse_rate,
+        av.temperature,
+        av.respiratory_rate,
+        av.fundal_height_cm,
+        av.fetal_heart_rate,
+        av.fetal_position,
+        av.fetal_movement,
+        av.hemoglobin_gdl,
+        av.blood_group,
+        av.rhesus_factor,
+        av.urine_protein,
+        av.urine_glucose,
+        av.hiv_test_done,
+        av.hiv_test_result,
+        av.syphilis_test_done,
+        av.syphilis_test_result,
+        av.hepatitis_b_test_done,
+        av.hepatitis_b_test_result,
+        av.malaria_test_done,
+        av.malaria_test_result,
+        av.maternal_complaints,
+        av.danger_signs_present,
+        av.danger_signs_list,
+        av.provider_notes,
+        av.clinical_impression,
+        av.plan_of_care,
+        av.dak_contact_number,
+        av.risk_level,
+        av.risk_factors,
+        av.iron_supplement_given,
+        av.folic_acid_given,
+        av.tetanus_toxoid_given,
+        av.malaria_prophylaxis_given,
+        av.deworming_given,
+        av.provider_name,
+        av.provider_qualification,
+        av.next_visit_date,
+        av.next_visit_gestation_weeks,
+        av.referral_made,
+        av.created_at,
+        av.updated_at,
+        pr.patient_id,
         p.name as patient_name,
         p.identifier as patient_identifier,
         pr.lmp_date,
@@ -957,6 +1010,21 @@ app.get('/api/anc_visit', async (req, res) => {
       LEFT JOIN patient p ON pr.patient_id = p.patient_id
       ORDER BY av.visit_date DESC, av.visit_number ASC
     `);
+    
+    // Debug: Log sample data to verify patient_id is included
+    if (result.rows.length > 0) {
+      console.log('ANC Visit API - Total visits:', result.rows.length);
+      console.log('ANC Visit API - Sample visit:', JSON.stringify({
+        anc_visit_id: result.rows[0].anc_visit_id,
+        pregnancy_id: result.rows[0].pregnancy_id,
+        patient_id: result.rows[0].patient_id,
+        visit_number: result.rows[0].visit_number,
+        visit_date: result.rows[0].visit_date
+      }));
+      // Log all unique patient_ids
+      const uniquePatientIds = [...new Set(result.rows.map(r => r.patient_id))];
+      console.log('ANC Visit API - Unique patient_ids:', uniquePatientIds);
+    }
     
     res.json({
       success: true,
@@ -1558,11 +1626,166 @@ app.get('/api/patient/:id', async (req, res) => {
 
 app.get('/api/patient', async (req, res) => {
   try {
-    const result = await pool.query('SELECT * FROM patient');
+    const result = await pool.query(`
+      SELECT 
+        p.patient_id,
+        p.fhir_id,
+        p.identifier,
+        p.name,
+        p.first_name,
+        p.last_name,
+        p.middle_name,
+        p.gender,
+        p.birth_date,
+        p.age,
+        p.phone,
+        p.email,
+        p.address,
+        p.emergency_contact,
+        p.emergency_phone,
+        -- Pregnancy data
+        preg.pregnancy_id,
+        preg.status as pregnancy_status,
+        preg.current_gestation_weeks,
+        preg.edd_date,
+        preg.lmp_date,
+        -- Latest risk assessment
+        (
+          SELECT risk_level 
+          FROM dak_risk_assessment 
+          WHERE patient_id = p.patient_id 
+          ORDER BY assessment_date DESC NULLS LAST, created_at DESC 
+          LIMIT 1
+        ) as risk_level,
+        -- Latest ANC visit risk level (fallback)
+        (
+          SELECT risk_level 
+          FROM anc_visit av
+          JOIN encounter e ON av.encounter_id = e.encounter_id
+          WHERE e.patient_id = p.patient_id 
+          ORDER BY av.visit_date DESC NULLS LAST, av.created_at DESC 
+          LIMIT 1
+        ) as anc_risk_level,
+        -- Latest ANC visit data (for gestational weeks calculation matching Flutter app)
+        latest_visit.visit_date as latest_visit_date,
+        latest_visit.gestation_weeks as latest_visit_gestation_weeks,
+        latest_visit.gestational_age_weeks,
+        -- Calculated gestational weeks (matching Flutter app logic)
+        CASE
+          -- If patient has delivered, return 40
+          WHEN EXISTS (SELECT 1 FROM delivery d WHERE d.patient_id = p.patient_id) THEN 40
+          -- Priority 1: Calculate from latest ANC visit with visit_date
+          WHEN latest_visit.visit_date IS NOT NULL 
+               AND latest_visit.gestation_weeks IS NOT NULL 
+               AND latest_visit.gestation_weeks > 0 THEN
+            LEAST(40, GREATEST(1, FLOOR(
+              (latest_visit.gestation_weeks * 7 + 
+               EXTRACT(EPOCH FROM (NOW() - latest_visit.visit_date)) / 86400
+              ) / 7
+            )))
+          -- Priority 2: Use latest visit gestation_weeks directly
+          WHEN latest_visit.gestation_weeks IS NOT NULL 
+               AND latest_visit.gestation_weeks > 0 THEN
+            LEAST(40, GREATEST(1, latest_visit.gestation_weeks))
+          -- Priority 3: Use gestational_age_weeks from latest visit
+          WHEN latest_visit.gestational_age_weeks IS NOT NULL 
+               AND latest_visit.gestational_age_weeks > 0 THEN
+            LEAST(40, GREATEST(1, latest_visit.gestational_age_weeks))
+          -- Priority 4: Use pregnancy.current_gestation_weeks
+          WHEN preg.current_gestation_weeks IS NOT NULL 
+               AND preg.current_gestation_weeks > 0 THEN
+            LEAST(40, GREATEST(1, preg.current_gestation_weeks))
+          -- Priority 5: Calculate from LMP date
+          WHEN preg.lmp_date IS NOT NULL THEN
+            LEAST(40, GREATEST(1, FLOOR(
+              EXTRACT(EPOCH FROM (NOW() - preg.lmp_date)) / 86400 / 7
+            )))
+          ELSE 0
+        END as calculated_weeks,
+        -- Count deliveries for this patient
+        (
+          SELECT COUNT(*)::INTEGER
+          FROM delivery d 
+          WHERE d.patient_id = p.patient_id
+        ) as delivery_count,
+        -- Check if patient has deliveries (for status)
+        CASE 
+          WHEN EXISTS (
+            SELECT 1 FROM delivery d WHERE d.patient_id = p.patient_id
+          ) THEN 'Delivered'
+          WHEN preg.status = 'completed' THEN 'Delivered'
+          WHEN preg.status = 'active' THEN 'Active'
+          WHEN preg.status IS NULL THEN 'Active'
+          ELSE 'Active'
+        END as patient_status
+      FROM patient p
+      LEFT JOIN LATERAL (
+        SELECT pregnancy_id, status, current_gestation_weeks, edd_date, lmp_date
+        FROM pregnancy
+        WHERE patient_id = p.patient_id
+        ORDER BY 
+          CASE WHEN status = 'active' THEN 1 ELSE 2 END,
+          created_at DESC
+        LIMIT 1
+      ) preg ON true
+      LEFT JOIN LATERAL (
+        SELECT 
+          av.visit_date,
+          av.gestation_weeks,
+          av.gestation_weeks as gestational_age_weeks,
+          av.visit_number
+        FROM anc_visit av
+        JOIN pregnancy preg_join ON av.pregnancy_id = preg_join.pregnancy_id
+        WHERE preg_join.patient_id = p.patient_id
+          AND av.gestation_weeks IS NOT NULL
+          AND av.gestation_weeks > 0
+        ORDER BY 
+          av.gestation_weeks DESC,
+          COALESCE(av.visit_date, '1900-01-01'::date) DESC,
+          av.visit_number DESC NULLS LAST
+        LIMIT 1
+      ) latest_visit ON true
+      ORDER BY p.created_at DESC
+    `);
+    
+    // Debug: Log first patient's data to see what we're getting
+    if (result.rows.length > 0) {
+      const firstPatient = result.rows[0];
+      console.log('Sample patient data:', JSON.stringify({
+        patient_id: firstPatient.patient_id,
+        name: firstPatient.name,
+        calculated_weeks: firstPatient.calculated_weeks,
+        latest_visit_date: firstPatient.latest_visit_date,
+        latest_visit_gestation_weeks: firstPatient.latest_visit_gestation_weeks,
+        current_gestation_weeks: firstPatient.current_gestation_weeks,
+        lmp_date: firstPatient.lmp_date,
+        delivery_count: firstPatient.delivery_count,
+        patient_status: firstPatient.patient_status,
+        pregnancy_id: firstPatient.pregnancy_id,
+        pregnancy_status: firstPatient.pregnancy_status
+      }, null, 2));
+      
+      // Debug: Check if ANC visits exist for this patient
+      const ancCheck = await pool.query(`
+        SELECT 
+          av.anc_visit_id,
+          av.gestation_weeks,
+          av.visit_date,
+          av.visit_number,
+          preg.patient_id as preg_patient_id
+        FROM anc_visit av
+        JOIN pregnancy preg ON av.pregnancy_id = preg.pregnancy_id
+        WHERE preg.patient_id = $1
+        ORDER BY av.gestation_weeks DESC NULLS LAST
+        LIMIT 5
+      `, [firstPatient.patient_id]);
+      console.log(`ANC visits found for patient ${firstPatient.patient_id}:`, ancCheck.rows);
+    }
+    
     res.json(result.rows);
   } catch (err) {
     console.error('Error fetching patient:', err);
-    res.status(500).json({ error: 'Failed to fetch patient data' });
+    res.status(500).json({ error: 'Failed to fetch patient data', message: err.message });
   }
 });
 
