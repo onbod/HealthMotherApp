@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
 import 'home_screen.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../core/widgets.dart';
 
 class PinSetupScreen extends StatefulWidget {
   final bool isChangingPin;
@@ -136,6 +137,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isWide = ResponsiveWrapper.isWideScreen(context);
+    
     return WillPopScope(
       onWillPop: () async {
         if (_isConfirmingPin) {
@@ -151,7 +154,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
         return true;
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: isWide ? const Color(0xFFEEEEEE) : const Color(0xFFF8F9FA),
         appBar: AppBar(
           backgroundColor: Colors.transparent,
           elevation: 0,
@@ -165,8 +168,11 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           ),
         ),
         body: SafeArea(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+          child: Center(
+            child: Container(
+              constraints: BoxConstraints(maxWidth: isWide ? 500 : double.infinity),
+              child: SingleChildScrollView(
+            padding: EdgeInsets.all(isWide ? 32.0 : 24.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -381,6 +387,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
             ),
           ),
         ),

@@ -17,6 +17,9 @@ class _OnboardingScreenState extends State<OnboardingScreen>
   late AnimationController _completionController;
   late Animation<double> _completionAnimation;
 
+  // Breakpoint for responsive layout
+  static const double _wideScreenBreakpoint = 800;
+
   @override
   void initState() {
     super.initState();
@@ -61,95 +64,315 @@ class _OnboardingScreenState extends State<OnboardingScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth >= _wideScreenBreakpoint;
+
     return Scaffold(
-      body: Stack(
-        children: [
-          AnimatedBuilder(
+      body: isWideScreen ? _buildWideScreenLayout() : _buildMobileLayout(),
+    );
+  }
+
+  // Mobile layout (original)
+  Widget _buildMobileLayout() {
+    return Stack(
+      children: [
+        AnimatedBuilder(
+          animation: _completionAnimation,
+          builder: (context, child) {
+            return Transform.scale(
+              scale: _completionAnimation.value,
+              child: PageView(
+                controller: _controller,
+                onPageChanged: (index) {
+                  setState(() {
+                    onLastPage = index == 2;
+                  });
+                },
+                children: const [
+                  OnboardingPage(
+                    image: 'assets/onboarding/pregnant.png',
+                    title: 'Pregnancy',
+                    description:
+                        'Register with your phone number to unlock medical records, appointment reminders and medication alerts.',
+                  ),
+                  OnboardingPage(
+                    image: 'assets/onboarding/pregnantphone2.jpg',
+                    title: 'Tracking',
+                    description:
+                        'Track your pregnancy\'s growth, get weekly tips, and stay informed every step of the way.',
+                  ),
+                  OnboardingPage(
+                    image: 'assets/onboarding/afterpregnancy.jpg',
+                    title: 'Child\'s Health',
+                    description:
+                        'Track vaccinations, feedings, and development—for a happy, healthy child.',
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+
+        // Page Indicator - bottom left
+        Positioned(
+          bottom: 30,
+          left: 20,
+          child: SmoothPageIndicator(
+            controller: _controller,
+            count: 3,
+            effect: const WormEffect(
+              dotHeight: 10,
+              dotWidth: 10,
+              activeDotColor: Color(0xFF6B4EFF),
+            ),
+          ),
+        ),
+
+        // Next / Get Started Button - bottom right
+        Positioned(
+          bottom: 20,
+          right: 20,
+          child: SizedBox(
+            height: 40,
+            width: 130,
+            child: ElevatedButton(
+              onPressed: () {
+                if (onLastPage) {
+                  _completeOnboarding();
+                } else {
+                  _goToNextPage();
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6B4EFF),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                onLastPage ? "Get Started" : "Next",
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Wide screen layout (split view)
+  Widget _buildWideScreenLayout() {
+    final onboardingData = [
+      {
+        'image': 'assets/onboarding/pregnant.png',
+        'title': 'Pregnancy',
+        'description':
+            'Register with your phone number to unlock medical records, appointment reminders and medication alerts.',
+      },
+      {
+        'image': 'assets/onboarding/pregnantphone2.jpg',
+        'title': 'Tracking',
+        'description':
+            'Track your pregnancy\'s growth, get weekly tips, and stay informed every step of the way.',
+      },
+      {
+        'image': 'assets/onboarding/afterpregnancy.jpg',
+        'title': 'Child\'s Health',
+        'description':
+            'Track vaccinations, feedings, and development—for a happy, healthy child.',
+      },
+    ];
+
+    return Row(
+      children: [
+        // Left side - Image with PageView
+        Expanded(
+          flex: 1,
+          child: AnimatedBuilder(
             animation: _completionAnimation,
             builder: (context, child) {
               return Transform.scale(
                 scale: _completionAnimation.value,
-                child: PageView(
+                child: PageView.builder(
                   controller: _controller,
                   onPageChanged: (index) {
                     setState(() {
                       onLastPage = index == 2;
                     });
                   },
-                  children: const [
-                    OnboardingPage(
-                      image: 'assets/onboarding/pregnant.png',
-                      title: 'Pregnancy',
-                      description:
-                          'Register with your phone number to unlock medical records, appointment reminders and medication alerts.',
-                    ),
-                    OnboardingPage(
-                      image: 'assets/onboarding/pregnantphone2.jpg',
-                      title: 'Tracking',
-                      description:
-                          'Track your pregnancy\'s growth, get weekly tips, and stay informed every step of the way.',
-                    ),
-                    OnboardingPage(
-                      image: 'assets/onboarding/afterpregnancy.jpg',
-                      title: 'Child\'s Health',
-                      description:
-                          'Track vaccinations, feedings, and development—for a happy, healthy child.',
-                    ),
-                  ],
+                  itemCount: 3,
+                  itemBuilder: (context, index) {
+                    return _WideScreenImagePanel(
+                      image: onboardingData[index]['image']!,
+                    );
+                  },
                 ),
               );
             },
           ),
+        ),
 
-          // Page Indicator - bottom left
-          Positioned(
-            bottom: 30,
-            left: 20,
-            child: SmoothPageIndicator(
-              controller: _controller,
-              count: 3,
-              effect: const WormEffect(
-                dotHeight: 10,
-                dotWidth: 10,
-                activeDotColor: Color(0xFF6B4EFF),
+        // Right side - Content
+        Expanded(
+          flex: 1,
+          child: Container(
+            color: Colors.white,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Logo
+                  Image.asset(
+                    'assets/icon/new_Icon.png',
+                    height: 80,
+                  ),
+                  const SizedBox(height: 48),
+
+                  // Animated content based on page
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 300),
+                    child: Column(
+                      key: ValueKey<int>(_controller.hasClients
+                          ? (_controller.page?.round() ?? 0)
+                          : 0),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          onboardingData[_controller.hasClients
+                              ? (_controller.page?.round() ?? 0)
+                              : 0]['title']!,
+                          style: const TextStyle(
+                            fontSize: 36,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          onboardingData[_controller.hasClients
+                              ? (_controller.page?.round() ?? 0)
+                              : 0]['description']!,
+                          style: const TextStyle(
+                            fontSize: 18,
+                            color: Colors.black87,
+                            height: 1.6,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 48),
+
+                  // Page Indicator
+                  SmoothPageIndicator(
+                    controller: _controller,
+                    count: 3,
+                    effect: const WormEffect(
+                      dotHeight: 12,
+                      dotWidth: 12,
+                      activeDotColor: Color(0xFF6B4EFF),
+                    ),
+                  ),
+
+                  const SizedBox(height: 48),
+
+                  // Button
+                  SizedBox(
+                    height: 56,
+                    width: 200,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        if (onLastPage) {
+                          _completeOnboarding();
+                        } else {
+                          _goToNextPage();
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF6B4EFF),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        onLastPage ? "Get Started" : "Next",
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
 
-          // Next / Get Started Button - bottom right
-          Positioned(
-            bottom: 20,
-            right: 20,
-            child: SizedBox(
-              height: 40,
-              width: 130,
-              child: ElevatedButton(
-                onPressed: () {
-                  if (onLastPage) {
-                    _completeOnboarding();
-                  } else {
-                    _goToNextPage();
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6B4EFF),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  onLastPage ? "Get Started" : "Next",
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+// Wide screen image panel
+class _WideScreenImagePanel extends StatefulWidget {
+  final String image;
+
+  const _WideScreenImagePanel({required this.image});
+
+  @override
+  State<_WideScreenImagePanel> createState() => _WideScreenImagePanelState();
+}
+
+class _WideScreenImagePanelState extends State<_WideScreenImagePanel>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _scaleAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 4),
+      vsync: this,
+    )..repeat(reverse: true);
+
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 1.1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _scaleAnimation,
+      builder: (context, child) {
+        return Transform.scale(
+          scale: _scaleAnimation.value,
+          child: Container(
+            decoration: BoxDecoration(
+              image: DecorationImage(
+                image: AssetImage(widget.image),
+                fit: BoxFit.cover,
               ),
             ),
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -179,13 +402,13 @@ class _OnboardingPageState extends State<OnboardingPage>
   void initState() {
     super.initState();
     _controller = AnimationController(
-      duration: const Duration(seconds: 4), // Increased from 2 to 4 seconds
+      duration: const Duration(seconds: 4),
       vsync: this,
     )..repeat(reverse: true);
 
     _scaleAnimation = Tween<double>(
       begin: 1.0,
-      end: 1.15, // Reduced zoom level from 1.2 to 1.15 for subtler effect
+      end: 1.15,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
@@ -197,6 +420,12 @@ class _OnboardingPageState extends State<OnboardingPage>
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    // Calculate responsive content height
+    final contentHeight = screenHeight < 700
+        ? screenHeight * 0.30
+        : screenHeight * 0.25;
+
     return Stack(
       children: [
         AnimatedBuilder(
@@ -205,7 +434,7 @@ class _OnboardingPageState extends State<OnboardingPage>
             return Transform.scale(
               scale: _scaleAnimation.value,
               child: SizedBox(
-                height: MediaQuery.of(context).size.height,
+                height: screenHeight,
                 width: double.infinity,
                 child: Image.asset(widget.image, fit: BoxFit.cover),
               ),
@@ -217,7 +446,7 @@ class _OnboardingPageState extends State<OnboardingPage>
           child: Container(
             margin: const EdgeInsets.only(top: 20),
             width: double.infinity,
-            height: MediaQuery.of(context).size.height * 0.25,
+            height: contentHeight,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
             decoration: const BoxDecoration(
               color: Colors.white,
@@ -245,12 +474,14 @@ class _OnboardingPageState extends State<OnboardingPage>
                   ),
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  widget.description,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Colors.black87,
-                    height: 1.5,
+                Expanded(
+                  child: Text(
+                    widget.description,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      color: Colors.black87,
+                      height: 1.5,
+                    ),
                   ),
                 ),
               ],

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../providers/user_session_provider.dart';
@@ -189,15 +190,19 @@ class _SharedAppBarState extends State<SharedAppBar> {
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(
+              Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               mainAxisSize: MainAxisSize.max,
               children: [
+                // Hide logo on web for home screen (since we have nav rail with logo)
+                // Show back button for non-home screens
                 Padding(
                   padding: const EdgeInsets.only(right: 12.0, top: 8.0),
                   child:
                       widget.isHomeScreen
-                          ? Image.asset('assets/icon/new_Icon.png', height: 40)
+                          ? (kIsWeb
+                              ? const SizedBox(width: 8) // No logo on web home
+                              : Image.asset('assets/icon/new_Icon.png', height: 40))
                           : (widget.onSidebarToggle == null
                               ? IconButton(
                                 icon: const Icon(

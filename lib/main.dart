@@ -171,6 +171,7 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
   bool _isFirstLaunch = false;
   bool _sessionRestored = false;
   bool _webPatientRestored = false;
+  bool _hasRestoredWebSession = false; // Track if we successfully restored web session
 
   @override
   void initState() {
@@ -196,6 +197,13 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
           listen: false,
         );
         await userSessionProvider.restorePatientFromStorage();
+        
+        // Check if we successfully restored patient data
+        if (userSessionProvider.patient != null) {
+          _hasRestoredWebSession = true;
+          print('Web session restored successfully with patient data');
+        }
+        
         if (mounted) {
           setState(() {
             _webPatientRestored = true;
@@ -298,18 +306,84 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Show loading indicator while restoring session
     if (!_sessionRestored || !_webPatientRestored) {
-      return const Center(child: CircularProgressIndicator());
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Image.asset(
+                'assets/icon/logo_center.png',
+                width: 150,
+                errorBuilder: (context, error, stackTrace) => const Icon(
+                  Icons.favorite,
+                  color: Color(0xFF7C4DFF),
+                  size: 64,
+                ),
+              ),
+              const SizedBox(height: 32),
+              const CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Loading...',
+                style: TextStyle(
+                  color: Colors.grey[600],
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
     }
+    
     if (_isFirstLaunch) {
       return const OnboardingScreen();
+    }
+
+    // On web, check if we have restored session first (before checking Firebase auth)
+    // This prevents asking for re-authentication on refresh
+    if (kIsWeb) {
+      final userSessionProvider = Provider.of<UserSessionProvider>(
+        context,
+        listen: false,
+      );
+      
+      // If we have patient data stored, go directly to home
+      if (userSessionProvider.patient != null || _hasRestoredWebSession) {
+        return const GlobalNavigation(currentIndex: 0, child: HomeScreen());
+      }
     }
 
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
+          return Scaffold(
+            backgroundColor: Colors.white,
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Checking authentication...',
+                    style: TextStyle(
+                      color: Colors.grey[600],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
         }
 
         if (snapshot.hasData) {
@@ -322,17 +396,39 @@ class _AuthWrapperState extends State<AuthWrapper> with WidgetsBindingObserver {
           return const GlobalNavigation(currentIndex: 0, child: HomeScreen());
         }
 
-        // NEW: Try to restore local session if not authenticated
+        // Try to restore local session if not authenticated via Firebase
         final userSessionProvider = Provider.of<UserSessionProvider>(
           context,
           listen: false,
         );
+        
         return FutureBuilder<bool>(
           future: userSessionProvider.tryRestoreSession(),
           builder: (context, localSnapshot) {
             if (localSnapshot.connectionState == ConnectionState.waiting) {
-              return const Center(child: CircularProgressIndicator());
+              return Scaffold(
+                backgroundColor: Colors.white,
+                body: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF7C4DFF)),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Restoring session...',
+                        style: TextStyle(
+                          color: Colors.grey[600],
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
             }
+            
             // On web, if we have patient data in provider, go to Home
             if (kIsWeb && userSessionProvider.patient != null) {
               return const GlobalNavigation(

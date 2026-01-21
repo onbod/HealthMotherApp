@@ -9,6 +9,7 @@ import 'pin_lock_screen.dart';
 import '../auth/login_screen.dart';
 import 'pin_setup_screen.dart';
 import '../providers/user_session_provider.dart';
+import '../core/widgets.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -246,11 +247,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final userSession = Provider.of<UserSessionProvider>(context, listen: true);
     final fullName = _getFullName(userSession);
     final initials = _getInitials(userSession);
+    final isWide = context.isWideScreen;
 
     return GlobalNavigation(
       currentIndex: 3,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
+        backgroundColor: isWide ? const Color(0xFFEEEEEE) : const Color(0xFFF8F9FA),
         appBar: SharedAppBar(
           visitNumber: 'Settings',
           onNotificationPressed: () {
@@ -262,7 +264,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
             );
           },
         ),
-        body: SingleChildScrollView(
+        body: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: isWide ? 700 : double.infinity),
+            decoration: isWide
+                ? BoxDecoration(
+                    color: const Color(0xFFF8F9FA),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  )
+                : null,
+            child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -500,6 +517,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 32),
             ],
+          ),
+        ),
           ),
         ),
       ),

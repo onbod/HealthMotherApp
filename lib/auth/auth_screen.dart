@@ -256,14 +256,27 @@ class _AuthScreenState extends State<AuthScreen> {
     });
   }
 
+  // Breakpoint and max width for responsive layout
+  static const double _wideScreenBreakpoint = 600;
+  static const double _maxContentWidth = 450;
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth >= _wideScreenBreakpoint;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-          child: Column(
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              width: isWideScreen ? _maxContentWidth : double.infinity,
+              padding: EdgeInsets.symmetric(
+                horizontal: isWideScreen ? 32 : 24,
+                vertical: 16,
+              ),
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Header
@@ -585,6 +598,8 @@ class _AuthScreenState extends State<AuthScreen> {
               ),
             ],
           ),
+        ),
+            ),
         ),
       ),
     );

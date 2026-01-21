@@ -65,162 +65,194 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  // Breakpoint and max width for responsive layout
+  static const double _wideScreenBreakpoint = 600;
+  static const double _maxContentWidth = 420;
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth >= _wideScreenBreakpoint;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: isWideScreen ? const Color(0xFFF5F5F5) : Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new),
-                  color: Colors.black,
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Phone Login',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Enter your phone number to continue',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Container(
-                  height: 48,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(2),
-                        child: Image.asset(
-                          'assets/slflag.png',
-                          width: 24,
-                          height: 16,
-                          fit: BoxFit.cover,
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              width: isWideScreen ? _maxContentWidth : double.infinity,
+              margin: isWideScreen
+                  ? const EdgeInsets.symmetric(vertical: 40)
+                  : EdgeInsets.zero,
+              padding: EdgeInsets.symmetric(
+                horizontal: isWideScreen ? 40 : 24,
+                vertical: isWideScreen ? 40 : 24,
+              ),
+              decoration: isWideScreen
+                  ? BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: Colors.grey.shade200),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 20,
+                          offset: const Offset(0, 4),
                         ),
+                      ],
+                    )
+                  : null,
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_new),
+                      color: Colors.black,
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Phone Login',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.black,
                       ),
-                      const Text(
-                        '+232',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF2563EB),
-                        ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Enter your phone number to continue',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.black,
                       ),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
-                      Expanded(
-                        child: TextFormField(
-                          controller: _phoneController,
-                          keyboardType: TextInputType.phone,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Please enter phone number';
-                            }
-                            if (!RegExp(r'^[0-9]+').hasMatch(value)) {
-                              return 'Enter a valid phone number (digits only)';
-                            }
-                            if (value.length != 8) {
-                              return 'Please enter a valid 8-digit number';
-                            }
-                            if (value.startsWith('0')) {
-                              return 'Number must not start with 0';
-                            }
-                            return null;
-                          },
-                          decoration: const InputDecoration(
-                            border: InputBorder.none,
-                            hintText: 'xx xxx xxx',
-                            hintStyle: TextStyle(
-                              color: Colors.grey,
-                              fontSize: 16,
+                    ),
+                    const SizedBox(height: 24),
+                    Container(
+                      height: 48,
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(2),
+                            child: Image.asset(
+                              'assets/slflag.png',
+                              width: 24,
+                              height: 16,
+                              fit: BoxFit.cover,
                             ),
-                            isDense: true,
-                            contentPadding: EdgeInsets.zero,
+                          ),
+                          const Text(
+                            '+232',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF2563EB),
+                            ),
+                          ),
+                          const SizedBox(width: 4),
+                          const Icon(Icons.keyboard_arrow_down, color: Colors.grey),
+                          Expanded(
+                            child: TextFormField(
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return 'Please enter phone number';
+                                }
+                                if (!RegExp(r'^[0-9]+').hasMatch(value)) {
+                                  return 'Enter a valid phone number (digits only)';
+                                }
+                                if (value.length != 8) {
+                                  return 'Please enter a valid 8-digit number';
+                                }
+                                if (value.startsWith('0')) {
+                                  return 'Number must not start with 0';
+                                }
+                                return null;
+                              },
+                              decoration: const InputDecoration(
+                                border: InputBorder.none,
+                                hintText: 'xx xxx xxx',
+                                hintStyle: TextStyle(
+                                  color: Colors.grey,
+                                  fontSize: 16,
+                                ),
+                                isDense: true,
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Enter the phone number from your first contact',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
+                    ),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton(
+                        onPressed:
+                            _isLoading
+                                ? null
+                                : () {
+                                  if (_formKey.currentState!.validate()) {
+                                    _requestOtp(_phoneController.text);
+                                  }
+                                },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7C4DFF),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Enter the phone number from your first contact',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF6B7280)),
-                ),
-                const Spacer(),
-                Center(
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 48,
-                    child: ElevatedButton(
-                      onPressed:
-                          _isLoading
-                              ? null
-                              : () {
-                                if (_formKey.currentState!.validate()) {
-                                  _requestOtp(_phoneController.text);
-                                }
-                              },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF7C4DFF),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child:
-                          _isLoading
-                              ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                              : const Text(
-                                'Continue',
-                                style: TextStyle(
+                        child:
+                            _isLoading
+                                ? const CircularProgressIndicator(
                                   color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
+                                )
+                                : const Text(
+                                  'Continue',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
                                 ),
-                              ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: TextButton(
-                    onPressed: () {
-                      Navigator.pushReplacementNamed(context, '/main_login');
-                    },
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xFF7C4DFF),
-                      textStyle: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    child: const Text('Back to Main Login'),
-                  ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.pushReplacementNamed(context, '/main_login');
+                        },
+                        style: TextButton.styleFrom(
+                          foregroundColor: const Color(0xFF7C4DFF),
+                          textStyle: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        child: const Text('Back to Main Login'),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

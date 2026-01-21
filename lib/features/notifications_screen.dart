@@ -9,6 +9,7 @@ import 'package:intl/intl.dart';
 import '../services/notification_service.dart';
 import '../services/backend_notification_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../core/widgets.dart';
 
 class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
@@ -613,18 +614,35 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isWide = ResponsiveWrapper.isWideScreen(context);
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F4F6),
+      backgroundColor: isWide ? const Color(0xFFEEEEEE) : const Color(0xFFF3F4F6),
       appBar: SharedAppBar(
         visitNumber: 'Notifications',
         isHomeScreen: false,
         onNotificationPressed: () {},
       ),
-      body: Column(
+      body: Center(
+        child: Container(
+          constraints: BoxConstraints(maxWidth: isWide ? 800 : double.infinity),
+          decoration: isWide
+              ? BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                )
+              : null,
+          child: Column(
         children: [
           // Filter buttons
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(isWide ? 20.0 : 16.0),
             child: Row(
               children: [
                 Expanded(
@@ -978,6 +996,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }

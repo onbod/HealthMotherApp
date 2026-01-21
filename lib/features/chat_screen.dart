@@ -6,6 +6,7 @@ import '../widgets/global_navigation.dart';
 import '../providers/user_session_provider.dart';
 import '../services/chat_history_service.dart';
 import '../models/chat_message.dart';
+import '../core/widgets.dart';
 
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
@@ -240,12 +241,29 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isWide = context.isWideScreen;
+    
     return GlobalNavigation(
       currentIndex: 0,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF3F4F6),
+        backgroundColor: isWide ? const Color(0xFFEEEEEE) : const Color(0xFFF3F4F6),
         appBar: SharedAppBar(visitNumber: 'Chat', isHomeScreen: false),
-        body: Column(
+        body: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: isWide ? 800 : double.infinity),
+            decoration: isWide
+                ? BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  )
+                : null,
+            child: Column(
           children: [
             Expanded(
               child:
@@ -276,6 +294,8 @@ class _ChatScreenState extends State<ChatScreen> {
             ),
             _buildMessageInput(),
           ],
+        ),
+          ),
         ),
       ),
     );

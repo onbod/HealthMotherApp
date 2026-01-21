@@ -22,6 +22,7 @@ import 'nutrition_tips_screen.dart';
 import 'package:flutter_speed_dial/flutter_speed_dial.dart';
 import 'chat_screen.dart';
 import 'package:intl/intl.dart'; // For date formatting
+import '../core/widgets.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -105,12 +106,16 @@ class _HomeScreenState extends State<HomeScreen>
       _isFabPositionInitialized = true;
     }
 
+    // Responsive layout calculations
+    final isWide = context.isWideScreen;
+    final horizontalPadding = isWide ? 16.0 : 12.0;
+
     return GlobalNavigation(
       currentIndex: 0,
       child: WillPopScope(
         onWillPop: _onWillPop,
         child: Scaffold(
-          backgroundColor: const Color(0xFFF3F4F6),
+          backgroundColor: isWide ? const Color(0xFFEEEEEE) : const Color(0xFFF3F4F6),
           appBar: SharedAppBar(
             visitNumber: 'Home',
             isHomeScreen: true,
@@ -123,7 +128,22 @@ class _HomeScreenState extends State<HomeScreen>
               );
             },
           ),
-          body: Stack(
+          body: Center(
+            child: Container(
+              constraints: BoxConstraints(maxWidth: isWide ? 1200 : double.infinity),
+              decoration: isWide
+                  ? BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    )
+                  : null,
+              child: Stack(
             children: [
               RefreshIndicator(
                 onRefresh: () async {
@@ -151,8 +171,8 @@ class _HomeScreenState extends State<HomeScreen>
                     // --- FIXED WIDGETS (Next Contact Section and Week Selector) ---
                     // Next Contact Section - Improved UI
                     Padding(
-                        padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
+                        padding: EdgeInsets.symmetric(
+                        horizontal: horizontalPadding,
                         vertical: 12,
                       ),
                               child: Consumer<UserSessionProvider>(
@@ -303,7 +323,7 @@ class _HomeScreenState extends State<HomeScreen>
                             // Add BabyProgressCard here
                             Padding(
                               padding: EdgeInsets.symmetric(
-                                horizontal: screenWidth * 0.04,
+                                horizontal: isWide ? 16.0 : 12.0,
                               ),
                               child: Builder(
                                 builder: (context) {
@@ -348,7 +368,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
               Positioned(
-                left: _fabPosition.dx,
+                left: _fabPosition.dx.clamp(0, isWide ? 1140.0 : screenWidth - 72),
                 top: _fabPosition.dy,
                 child: Draggable(
                   feedback: SpeedDial(
@@ -461,6 +481,8 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
             ],
+          ),
+            ),
           ),
         ),
       ),

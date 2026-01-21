@@ -6,25 +6,43 @@ import 'report_issue_intro_screen.dart';
 import 'health_tips_screen.dart';
 import 'nutrition_tips_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../core/widgets.dart';
 
 class ResourcesScreen extends StatelessWidget {
   const ResourcesScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    final isWide = ResponsiveWrapper.isWideScreen(context);
+    
     return GlobalNavigation(
       currentIndex: 3,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF3F4F6),
+        backgroundColor: isWide ? const Color(0xFFEEEEEE) : const Color(0xFFF3F4F6),
         appBar: SharedAppBar(
           visitNumber: 'Resources',
           onNotificationPressed: () {
             // Handle notification press
           },
         ),
-        body: SingleChildScrollView(
+        body: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: isWide ? 800 : double.infinity),
+            decoration: isWide
+                ? BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  )
+                : null,
+            child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(isWide ? 24.0 : 16.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -169,6 +187,8 @@ class ResourcesScreen extends StatelessWidget {
                 ]),
               ],
             ),
+          ),
+        ),
           ),
         ),
       ),

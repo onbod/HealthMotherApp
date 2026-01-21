@@ -38,6 +38,11 @@ app.use(cors({
       return callback(null, true);
     }
     
+    // Allow all localhost origins (for development)
+    if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return callback(null, true);
+    }
+    
     // Allow all Railway domains
     if (origin.endsWith('.railway.app')) {
       return callback(null, true);

@@ -7,6 +7,7 @@ import 'contact_details_screen.dart';
 import 'pin_lock_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import '../core/widgets.dart';
 
 class VisitsScreen extends StatefulWidget {
   const VisitsScreen({super.key});
@@ -21,10 +22,12 @@ class _VisitsScreenState extends State<VisitsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isWide = context.isWideScreen;
+    
     return GlobalNavigation(
       currentIndex: 2,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF3F4F6),
+        backgroundColor: isWide ? const Color(0xFFEEEEEE) : const Color(0xFFF3F4F6),
         appBar: SharedAppBar(
           visitNumber: 'Visits',
           onNotificationPressed: () {
@@ -36,7 +39,22 @@ class _VisitsScreenState extends State<VisitsScreen> {
             // );
           },
         ),
-        body: Consumer<UserSessionProvider>(
+        body: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: isWide ? 800 : double.infinity),
+            decoration: isWide
+                ? BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  )
+                : null,
+            child: Consumer<UserSessionProvider>(
           builder: (context, userSession, child) {
             final ancVisits = userSession.getAncVisits();
             final delivery = userSession.getDelivery();
@@ -175,6 +193,8 @@ class _VisitsScreenState extends State<VisitsScreen> {
               ),
             );
           },
+        ),
+          ),
         ),
       ),
     );

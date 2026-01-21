@@ -7,6 +7,7 @@ import '../providers/user_session_provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'add_medication_screen.dart';
 import '../models/medication.dart';
+import '../core/widgets.dart';
 
 class MedicationScreen extends StatefulWidget {
   const MedicationScreen({super.key});
@@ -20,10 +21,12 @@ class _MedicationScreenState extends State<MedicationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isWide = context.isWideScreen;
+    
     return GlobalNavigation(
       currentIndex: 1,
       child: Scaffold(
-        backgroundColor: const Color(0xFFF3F4F6),
+        backgroundColor: isWide ? const Color(0xFFEEEEEE) : const Color(0xFFF3F4F6),
         appBar: SharedAppBar(
           visitNumber: 'Medications',
           onNotificationPressed: () {
@@ -35,7 +38,22 @@ class _MedicationScreenState extends State<MedicationScreen> {
             );
           },
         ),
-        body: Consumer<UserSessionProvider>(
+        body: Center(
+          child: Container(
+            constraints: BoxConstraints(maxWidth: isWide ? 800 : double.infinity),
+            decoration: isWide
+                ? BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 20,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  )
+                : null,
+            child: Consumer<UserSessionProvider>(
           builder: (context, userSession, child) {
             // Group medications by contact number
             Map<int, List<String>> medicationsByContact = {};
@@ -427,6 +445,8 @@ class _MedicationScreenState extends State<MedicationScreen> {
               ),
             );
           },
+        ),
+          ),
         ),
         floatingActionButton: FloatingActionButton(
           onPressed: () {

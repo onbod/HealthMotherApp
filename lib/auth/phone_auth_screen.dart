@@ -185,199 +185,214 @@ class _PhoneAuthScreenState extends State<PhoneAuthScreen> {
     });
   }
 
+  // Breakpoint and max width for responsive layout
+  static const double _wideScreenBreakpoint = 600;
+  static const double _maxContentWidth = 400;
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth >= _wideScreenBreakpoint;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back_ios_new),
-                  color: Colors.black,
-                  onPressed: () => Navigator.pop(context),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Phone Authentication',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
+        child: Center(
+          child: Container(
+            width: isWideScreen ? _maxContentWidth : double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: isWideScreen ? 32 : 24,
+              vertical: 24,
+            ),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.arrow_back_ios_new),
                     color: Colors.black,
+                    onPressed: () => Navigator.pop(context),
                   ),
-                ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Enter your phone number to receive OTP',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.black,
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                // Phone Number Input
-                Container(
-                  height: 48,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade300),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: TextFormField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    enabled: !_isOtpSent,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter phone number';
-                      }
-                      if (!RegExp(r'^\+?[0-9]+').hasMatch(value)) {
-                        return 'Enter a valid phone number';
-                      }
-                      return null;
-                    },
-                    decoration: const InputDecoration(
-                      border: InputBorder.none,
-                      hintText: '+1234567890',
-                      hintStyle: TextStyle(color: Colors.grey, fontSize: 16),
-                      isDense: true,
-                      contentPadding: EdgeInsets.zero,
+                  const SizedBox(height: 8),
+                  const Text(
+                    'Phone Authentication',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.black,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Enter your phone number to receive OTP',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
 
-                const SizedBox(height: 16),
-
-                // OTP Input (shown after OTP is sent)
-                if (_isOtpSent) ...[
+                  // Phone Number Input
                   Container(
                     height: 48,
+                    width: double.infinity,
                     padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey.shade300),
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: TextFormField(
-                      controller: _otpController,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
+                      controller: _phoneController,
+                      keyboardType: TextInputType.phone,
+                      enabled: !_isOtpSent,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter OTP';
+                          return 'Please enter phone number';
                         }
-                        if (value.length != 6) {
-                          return 'Please enter 6-digit OTP';
+                        if (!RegExp(r'^\+?[0-9]+').hasMatch(value)) {
+                          return 'Enter a valid phone number';
                         }
                         return null;
                       },
                       decoration: const InputDecoration(
                         border: InputBorder.none,
-                        hintText: 'Enter 6-digit OTP',
+                        hintText: '+1234567890',
                         hintStyle: TextStyle(color: Colors.grey, fontSize: 16),
                         isDense: true,
                         contentPadding: EdgeInsets.zero,
-                        counterText: '',
                       ),
                     ),
                   ),
+
                   const SizedBox(height: 16),
-                ],
 
-                // Error Message
-                if (_errorMessage.isNotEmpty)
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    margin: const EdgeInsets.only(bottom: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.shade200),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.error_outline,
-                          color: Colors.red.shade600,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _errorMessage,
-                            style: TextStyle(
-                              color: Colors.red.shade700,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                const Spacer(),
-
-                // Action Button
-                SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    onPressed:
-                        _isLoading
-                            ? null
-                            : (_isOtpSent ? _verifyOtp : _sendOtp),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF7C4DFF),
-                      shape: RoundedRectangleBorder(
+                  // OTP Input (shown after OTP is sent)
+                  if (_isOtpSent) ...[
+                    Container(
+                      height: 48,
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey.shade300),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                    ),
-                    child:
-                        _isLoading
-                            ? const CircularProgressIndicator(
-                              color: Colors.white,
-                            )
-                            : Text(
-                              _isOtpSent ? 'Verify OTP' : 'Send OTP',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Resend OTP Button (shown after OTP is sent)
-                if (_isOtpSent)
-                  Center(
-                    child: TextButton(
-                      onPressed:
-                          (_isLoading || _resendCountdown > 0)
-                              ? null
-                              : _sendOtp,
-                      child: Text(
-                        _resendCountdown > 0
-                            ? 'Resend OTP in $_resendCountdown seconds'
-                            : 'Resend OTP',
-                        style: TextStyle(
-                          color:
-                              (_isLoading || _resendCountdown > 0)
-                                  ? Colors.grey
-                                  : const Color(0xFF7C4DFF),
+                      child: TextFormField(
+                        controller: _otpController,
+                        keyboardType: TextInputType.number,
+                        maxLength: 6,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Please enter OTP';
+                          }
+                          if (value.length != 6) {
+                            return 'Please enter 6-digit OTP';
+                          }
+                          return null;
+                        },
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          hintText: 'Enter 6-digit OTP',
+                          hintStyle: TextStyle(color: Colors.grey, fontSize: 16),
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                          counterText: '',
                         ),
                       ),
                     ),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // Error Message
+                  if (_errorMessage.isNotEmpty)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            color: Colors.red.shade600,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _errorMessage,
+                              style: TextStyle(
+                                color: Colors.red.shade700,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  const Spacer(),
+
+                  // Action Button
+                  SizedBox(
+                    width: double.infinity,
+                    height: 48,
+                    child: ElevatedButton(
+                      onPressed:
+                          _isLoading
+                              ? null
+                              : (_isOtpSent ? _verifyOtp : _sendOtp),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7C4DFF),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child:
+                          _isLoading
+                              ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                              : Text(
+                                _isOtpSent ? 'Verify OTP' : 'Send OTP',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                    ),
                   ),
-              ],
+
+                  const SizedBox(height: 16),
+
+                  // Resend OTP Button (shown after OTP is sent)
+                  if (_isOtpSent)
+                    Center(
+                      child: TextButton(
+                        onPressed:
+                            (_isLoading || _resendCountdown > 0)
+                                ? null
+                                : _sendOtp,
+                        child: Text(
+                          _resendCountdown > 0
+                              ? 'Resend OTP in $_resendCountdown seconds'
+                              : 'Resend OTP',
+                          style: TextStyle(
+                            color:
+                                (_isLoading || _resendCountdown > 0)
+                                    ? Colors.grey
+                                    : const Color(0xFF7C4DFF),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
         ),
